@@ -3,50 +3,43 @@
 ## Status
 
 - Lokal portal fungerer på statisk server.
-- `/app/` viser korrekt `Nesten klar` fordi `app/config.js` mangler Supabase URL og anon-nøkkel.
-- Supabase SQL-filene ligger klare:
+- Supabase-prosjektet `saksflyt` er opprettet i organisasjonen `ResolvePartners`.
+- `app/config.js` er fylt med Supabase URL og publishable key.
+- Supabase SQL-filene er kjørt:
   1. `supabase/migrations/0001_init.sql`
   2. `supabase/migrations/0002_attestering.sql`
   3. `supabase/seed_klubb.sql`
-- Git-repoet har to commits og ingen remote satt.
-- GitHub CLI er installert, men ikke innlogget.
+- Storage-buckets `bilag` og `dokumenter` er opprettet med organisasjonsstyrte policies.
+- GitHub-repoet `malikdilnawaz20-ctrl/regnskap` er opprettet og publisert med GitHub Pages.
+- `sakflyt.no` svarer fra GitHub Pages.
 
 ## Viktig Supabase-avklaring
 
-Chrome viser et eksisterende Supabase-prosjekt:
-
-- Navn: `malikdilnawaz20@gmail.com's Project`
-- Organisasjon/prosjektflate: `ResolvePartners`
-- URL: `https://eegxkylchxnwklpotqxc.supabase.co`
-- Region: `West EU (Ireland)`, ikke Frankfurt.
-
-Ikke kjør Saksflyt-migrasjonene i dette prosjektet uten uttrykkelig godkjenning. Anbefalt produksjonsvalg er nytt Supabase-prosjekt:
+Produksjonsprosjektet som brukes nå:
 
 - Navn: `saksflyt`
-- Region: Frankfurt / `eu-central-1`
-- Formål: egne regnskaps- og medlemsdata for Saksflyt.
+- Organisasjon/prosjektflate: `ResolvePartners`
+- URL: `https://bunqdzvtocayqlddcjmf.supabase.co`
+- Region: `Central EU (Frankfurt)`, `eu-central-1`
 
-## Neste sikre steg
+Det gamle Supabase-prosjektet `https://eegxkylchxnwklpotqxc.supabase.co` brukes ikke til Saksflyt Regnskap.
 
-1. Opprett nytt Supabase-prosjekt `saksflyt` i Frankfurt.
-2. Kjør SQL-filene i rekkefølgen over.
-3. Opprett private Storage-buckets: `bilag` og `dokumenter`.
-4. Legg inn Storage policies fra `OPPSETT.md`.
-5. Opprett de tre brukerne med oppstartspassordet fra `OPPSETT.md`.
-6. Kopier `Project URL` og `anon public` til `app/config.js`.
-7. Test innlogging lokalt på `http://localhost:8088/app/`.
-8. Logg inn i GitHub CLI eller bruk GitHub i Chrome.
-9. Opprett/push repo og slå på GitHub Pages for `sakflyt.no`.
+## Gjenstår
+
+1. Opprett de tre første brukerne i Supabase Auth.
+2. Test innlogging lokalt på `http://127.0.0.1:8090/app/`.
+3. Kontroller appen på `https://sakflyt.no/app/`.
+4. Vurder om åpen e-postregistrering skal slås av etter at første brukere er opprettet.
 
 ## Lokal test
 
 Start fra repo-roten:
 
 ```bash
-python3 -m http.server 8088
+python3 -m http.server 8090 --bind 127.0.0.1
 ```
 
 Åpne:
 
-- Portal: `http://localhost:8088/`
-- App: `http://localhost:8088/app/`
+- Portal: `http://127.0.0.1:8090/`
+- App: `http://127.0.0.1:8090/app/`
