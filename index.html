@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Saksflyt</title>
+<meta name="description" content="Saksflyt — regnskap, medlemmer og saksbehandling i ett system.">
+<meta name="theme-color" content="#073F43">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23087F7A'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>S</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="./app/styles.css">
+<style>
+  body{display:flex;flex-direction:column;min-height:100vh}
+  .portal-topp{
+    background:var(--sb-bg);color:#fff;padding:64px 24px 96px;
+    display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px
+  }
+  .portal-merke{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .portal-merke .sb-logo{width:38px;height:38px;border-radius:11px;font-size:1.1rem}
+  .portal-merke b{font-size:1.12rem;font-weight:650;letter-spacing:-.015em}
+  .portal-topp h1{color:#fff;font-size:clamp(1.9rem,4.4vw,2.7rem);max-width:19ch}
+  .portal-topp p{color:#A9C7C6;font-size:1.03rem;max-width:52ch;margin:0;line-height:1.6}
+
+  .portal-kort{
+    width:min(1080px,100%);margin:-64px auto 0;padding:0 24px 56px;
+    display:grid;gap:20px;grid-template-columns:repeat(3,1fr)
+  }
+  @media (max-width:900px){.portal-kort{grid-template-columns:1fr;margin-top:-72px}}
+
+  .produkt{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:26px 24px 22px;display:flex;flex-direction:column;gap:12px;
+    box-shadow:var(--skygge-hev);text-decoration:none;color:inherit;
+    transition:transform .16s cubic-bezier(.2,.7,.3,1),box-shadow .16s,border-color .16s
+  }
+  .produkt:hover{transform:translateY(-3px);border-color:var(--teal);box-shadow:0 18px 40px rgba(23,33,43,.13)}
+  .produkt .sirkel{
+    width:44px;height:44px;border-radius:13px;background:var(--teal-soft);color:var(--teal);
+    display:grid;place-items:center
+  }
+  .produkt .sirkel svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .produkt h2{font-size:1.14rem;font-weight:650;letter-spacing:-.018em}
+  .produkt p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.6}
+  .produkt ul{margin:auto 0 0;padding:8px 0 0;list-style:none;display:flex;flex-direction:column;gap:5px}
+  .produkt li{font-size:.845rem;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+  .produkt li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--teal);margin-top:8px;flex:none}
+  .produkt .gaa{
+    margin-top:14px;display:inline-flex;align-items:center;gap:7px;
+    font-size:.885rem;font-weight:650;color:var(--teal)
+  }
+  .produkt .gaa svg{width:15px;height:15px;stroke:currentColor;stroke-width:2.1;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:transform .16s}
+  .produkt:hover .gaa svg{transform:translateX(3px)}
+  .produkt.kommer{opacity:.92}
+  .produkt.kommer .sirkel{background:var(--hover);color:var(--muted)}
+
+  .portal-bunn{
+    margin-top:auto;border-top:1px solid var(--line);padding:26px 24px;
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    color:var(--muted);font-size:.83rem;width:min(1080px,100%);margin-inline:auto
+  }
+  .portal-bunn a{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="portal-topp">
+  <div class="portal-merke">
+    <span class="sb-logo">S</span>
+    <b>Saksflyt</b>
+  </div>
+  <h1>Ett sted for klubbens papirer</h1>
+  <p>Medlemmer, penger og saker samlet. Bygget for frivillige styrer og små kontorer — ikke for regnskapsførere.</p>
+</header>
+
+<main class="portal-kort">
+
+  <a class="produkt" href="./app/#/okonomi">
+    <span class="sirkel"><svg viewBox="0 0 24 24"><path d="M4 19.5V11M9.3 19.5V5.5M14.7 19.5v-6M20 19.5V8.5"/><path d="M2.5 21.5h19"/></svg></span>
+    <h2>Saksflyt Regnskap</h2>
+    <p>Registrer inntekter og utgifter i vanlig norsk. Systemet fører regnskapet riktig under panseret.</p>
+    <ul>
+      <li>Regninger godkjennes av to personer før betaling</li>
+      <li>Prosjektregnskap for tilskudd, klart til rapportering</li>
+      <li>Import av gamle regnskap fra Excel</li>
+    </ul>
+    <span class="gaa">Logg inn <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
+  </a>
+
+  <a class="produkt" href="./app/#/medlemmer">
+    <span class="sirkel"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.2 6.2-5.2s6.2 1.8 6.2 5.2"/><path d="M17.2 10.8a2.6 2.6 0 1 0 0-5.2M21.2 20c0-2.6-1.6-4.2-4.2-4.4"/></svg></span>
+    <h2>Saksflyt Medlem</h2>
+    <p>Ett medlem registreres én gang, uansett hvor mange aktiviteter personen deltar i.</p>
+    <ul>
+      <li>Familier og foresatte håndteres riktig</li>
+      <li>Kontingent og treningsavgift holdes atskilt</li>
+      <li>Import av medlemslister fra Excel</li>
+    </ul>
+    <span class="gaa">Logg inn <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
+  </a>
+
+  <a class="produkt" href="https://sak.rpadvokat.no" rel="noopener">
+    <span class="sirkel"><svg viewBox="0 0 24 24"><path d="M6.5 2.8h7.2l4.8 4.9v13.5H6.5z"/><path d="M13.7 2.8v4.9h4.8"/><path d="M9.5 13h6M9.5 16.5h4"/></svg></span>
+    <h2>Saksflyt Saksbehandling</h2>
+    <p>Saker, frister og timeføring for kontorer som lever av å holde orden på andres saker.</p>
+    <ul>
+      <li>Saksoversikt med frister og varsling</li>
+      <li>Timeføring rett fra saken</li>
+      <li>Fakturagrunnlag uten dobbeltarbeid</li>
+    </ul>
+    <span class="gaa">Logg inn <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
+  </a>
+
+</main>
+
+<footer class="portal-bunn">
+  <span>Saksflyt</span>
+  <span>Dataene tilhører organisasjonen. Last dem ned når du vil.</span>
+</footer>
+
+<script>
+  // Husk hvilket produkt du sist brukte, så slipper du å velge hver gang.
+  try {
+    const sist = localStorage.getItem("sf-produkt");
+    document.querySelectorAll(".produkt").forEach(a => {
+      a.addEventListener("click", () => {
+        try { localStorage.setItem("sf-produkt", a.getAttribute("href")); } catch (e) {}
+      });
+      if (sist && a.getAttribute("href") === sist) {
+        const m = document.createElement("span");
+        m.className = "badge teal";
+        m.style.alignSelf = "flex-start";
+        m.textContent = "Sist brukt";
+        a.insertBefore(m, a.querySelector("h2"));
+      }
+    });
+  } catch (e) {}
+</script>
+
+</body>
+</html>
