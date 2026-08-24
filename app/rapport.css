@@ -1,0 +1,175 @@
+/* =====================================================================
+   Rapportdokumenter
+   Ett dokumentoppsett for alle rapporter. En rapport er et dokument som
+   skal kunne leveres til revisor, tilskuddsgiver eller et kontrollorgan
+   uten at noen trenger å spørre hvor tallene kommer fra.
+
+   Papiret er hvitt i begge temaer. Et dokument ser likt ut på skjerm
+   og på papir — det er hele poenget.
+   ===================================================================== */
+
+.dok-scene{
+  background:var(--paper);
+  padding:22px 0 40px;
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+}
+
+/* Verktøylinjen over dokumentet forsvinner ved utskrift */
+.dok-verktoy{
+  width:min(210mm,100%);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.dok-verktoy .venstre{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* --- selve arket --- */
+.ark{
+  width:210mm;max-width:100%;
+  background:#FFFFFF;color:#17212B;
+  border:1px solid #E4E9EE;border-radius:4px;
+  box-shadow:0 10px 40px rgba(23,33,43,.13);
+  padding:18mm 18mm 24mm;
+  font-size:10.5pt;line-height:1.5;
+  font-variant-numeric:tabular-nums;
+  position:relative;
+}
+
+/* --- brevhode --- */
+.ark-hode{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:20px;
+  padding-bottom:10px;border-bottom:2px solid #087F7A;
+}
+.ark-hode .klubb{font-size:14pt;font-weight:680;letter-spacing:-.02em;line-height:1.2}
+.ark-hode .orgnr{font-size:8.5pt;color:#667085;margin-top:3px}
+.ark-hode .hoyre{text-align:right}
+.ark-hode .type{
+  font-size:8pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#087F7A
+}
+.ark-hode .periode{font-size:10pt;font-weight:600;margin-top:3px}
+
+.ark h1{
+  font-size:19pt;font-weight:680;letter-spacing:-.028em;margin:20px 0 3px;line-height:1.15;color:#17212B
+}
+.ark .ingress{font-size:10pt;color:#667085;margin:0 0 18px;max-width:68ch}
+
+/* --- faktaboks: grunnlaget for rapporten --- */
+.dok-fakta{
+  border:1px solid #E4E9EE;border-radius:6px;background:#F8FAFB;
+  padding:12px 14px;margin:0 0 20px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px 18px;
+}
+.dok-fakta div{min-width:0}
+.dok-fakta dt{font-size:7.6pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#667085}
+.dok-fakta dd{margin:2px 0 0;font-size:9.5pt;font-weight:600;color:#17212B;word-break:break-word}
+
+/* --- seksjoner --- */
+.dok-seksjon{margin:0 0 20px;break-inside:auto}
+.dok-seksjon > h2{
+  font-size:11pt;font-weight:680;letter-spacing:-.01em;margin:0 0 8px;
+  padding-bottom:5px;border-bottom:1px solid #E4E9EE;
+}
+.dok-seksjon > .forklaring{font-size:9pt;color:#667085;margin:-4px 0 10px;max-width:70ch}
+
+/* --- regnskapstabell --- */
+table.regnskap{width:100%;border-collapse:collapse;font-size:9.8pt}
+table.regnskap th{
+  font-size:7.6pt;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#667085;
+  text-align:left;padding:0 0 6px;border-bottom:1px solid #E4E9EE;background:none
+}
+table.regnskap th.num, table.regnskap td.num{text-align:right}
+table.regnskap td{padding:5px 0;border:0}
+table.regnskap td.num{white-space:nowrap;padding-left:16px}
+table.regnskap .konto{color:#8A93A2;font-size:8.6pt;padding-right:10px;width:44px}
+table.regnskap tr.gruppe td{
+  padding-top:13px;font-weight:680;font-size:9.6pt;letter-spacing:-.005em
+}
+table.regnskap tr.sum td{
+  border-top:1px solid #17212B;padding-top:6px;font-weight:680
+}
+table.regnskap tr.resultat td{
+  border-top:1px solid #17212B;border-bottom:3px double #17212B;
+  padding:7px 0;font-weight:700;font-size:10.4pt
+}
+table.regnskap tr.mellomsum td{border-top:1px solid #D3DBE3;padding-top:6px;font-weight:640}
+table.regnskap td.pos{color:#1F7A4D}
+table.regnskap td.neg{color:#B3352F}
+table.regnskap tr.tynn td{color:#667085}
+table.regnskap tbody tr:hover{background:none}
+
+/* endringskolonne */
+.endring{font-size:8.6pt;color:#667085;white-space:nowrap}
+.endring.opp{color:#1F7A4D}
+.endring.ned{color:#B3352F}
+
+/* --- kontrollpunkt: det som gjør at en revisor slapper av --- */
+.kontroll{
+  border:1px solid #E4E9EE;border-left:3px solid #1F7A4D;border-radius:5px;
+  background:#F6FBF8;padding:10px 13px;margin:14px 0 0;font-size:9pt;color:#17212B
+}
+.kontroll.avvik{border-left-color:#B3352F;background:#FDF6F5}
+.kontroll b{font-weight:680}
+.kontroll ul{margin:6px 0 0;padding-left:16px}
+.kontroll li{margin:2px 0}
+
+/* --- noter --- */
+.noter{counter-reset:note}
+.noter .note{
+  break-inside:avoid;margin:0 0 11px;padding-left:30px;position:relative;font-size:9.3pt;color:#17212B
+}
+.noter .note::before{
+  counter-increment:note;content:"Note " counter(note);
+  position:absolute;left:0;top:0;font-size:7.6pt;font-weight:700;color:#087F7A;
+  letter-spacing:.04em;white-space:nowrap
+}
+.noter .note b{display:block;font-weight:660;margin-bottom:2px}
+.noter .note p{margin:0;color:#3D4A5A;line-height:1.55}
+
+/* --- signaturer --- */
+.signaturer{
+  margin-top:26px;padding-top:14px;border-top:1px solid #E4E9EE;
+  break-inside:avoid
+}
+.signaturer .sted{font-size:9.3pt;color:#3D4A5A;margin-bottom:20px}
+.signaturer .rader{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.signaturer .felt{border-top:1px solid #17212B;padding-top:5px}
+.signaturer .felt b{display:block;font-size:9.3pt;font-weight:640}
+.signaturer .felt span{font-size:8.4pt;color:#667085}
+
+/* --- bunnlinje, gjentas på hver utskrevne side --- */
+.ark-bunn{
+  position:absolute;left:18mm;right:18mm;bottom:10mm;
+  display:flex;justify-content:space-between;gap:14px;
+  font-size:7.8pt;color:#8A93A2;
+  border-top:1px solid #EEF1F5;padding-top:5px
+}
+
+/* =====================================================================
+   Utskrift
+   ===================================================================== */
+
+@media print{
+  @page{size:A4;margin:0}
+  html,body{background:#FFFFFF!important;margin:0;padding:0}
+  body *{visibility:hidden}
+  .ark, .ark *{visibility:visible}
+  .dok-scene{display:block;padding:0;background:#FFFFFF}
+  .dok-verktoy{display:none!important}
+  .app, .sidebar, .mobilnav, .topbar, .themetoggle, .toast{display:none!important}
+  .ark{
+    width:auto;box-shadow:none;border:0;border-radius:0;
+    padding:16mm 16mm 22mm;margin:0;
+    page-break-after:always
+  }
+  .ark:last-child{page-break-after:auto}
+  .ark-bunn{position:fixed;left:16mm;right:16mm;bottom:8mm}
+  .dok-seksjon{break-inside:auto}
+  table.regnskap tr{break-inside:avoid}
+  table.regnskap thead{display:table-header-group}
+  .signaturer, .kontroll, .noter .note{break-inside:avoid}
+  a[href]::after{content:""}
+}
+
+@media (max-width:820px){
+  .ark{padding:14mm 10mm 20mm;font-size:10pt}
+  .dok-fakta{grid-template-columns:repeat(2,1fr)}
+  .signaturer .rader{grid-template-columns:1fr;gap:22px}
+}

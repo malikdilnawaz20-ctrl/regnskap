@@ -624,3 +624,16 @@ input[type=checkbox]{width:17px;height:17px;accent-color:var(--teal)}
 }
 .themetoggle svg{width:16px;height:16px;stroke:var(--muted);stroke-width:1.8;fill:none;stroke-linecap:round}
 @media (max-width:900px){.themetoggle{bottom:78px}}
+
+/* =====================================================================
+   Bredde på mobil
+   Rutenett- og fleksbokser får som standard min-width:auto. En bred
+   tabell dyttet derfor hele arbeidsflaten utover, slik at siden kunne
+   dras sideveis på telefon. Tabellen skal rulle inni sin egen ramme —
+   siden skal ikke flytte seg.
+   ===================================================================== */
+
+.app, .app > *{min-width:0}
+.main{min-width:0;max-width:100%}
+.card, .stack, .grid, .split, .between, .tabellverktoy, .card-body{min-width:0}
+.tablewrap{max-width:100%}

@@ -18,6 +18,7 @@ import {
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
 import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
+import { rapportmalView } from "./views/rapportmal.js";
 import { MERKE } from "./config.js";
 
 /* =====================================================================
@@ -36,7 +37,7 @@ const RUTER = {
   regnskapsrapporter: { tittel: "Regnskapsrapporter", ikon: "rapport", view: () => rapporterView, under: "okonomi" },
   prosjekter:  { tittel: "Prosjekter", ikon: "prosjekt", view: () => prosjekterView },
   dokumenter:  { tittel: "Dokumenter", ikon: "dokument" },
-  rapporter:   { tittel: "Rapporter", ikon: "rapport", view: () => rapporterView },
+  rapporter:   { tittel: "Rapporter", ikon: "rapport", view: () => rapportmalView },
   innstillinger: { tittel: "Innstillinger", ikon: "innstilling" },
   brukere:     { tittel: "Brukere", ikon: "bruker", under: "innstillinger" },
   selskap:     { tittel: "Selskapsinformasjon", ikon: "bygg", under: "innstillinger" },
@@ -52,7 +53,7 @@ const HOVEDNAV = [
   { gruppe: "Arkiv", punkter: ["dokumenter"] }
 ];
 
-const OKONOMI_UNDER = ["attestering"];
+const OKONOMI_UNDER = ["attestering", "regnskapsrapporter"];
 const INNST_UNDER = ["selskap", "brukere", "revisjonsspor"];
 
 let ruteNaa = "oversikt";
