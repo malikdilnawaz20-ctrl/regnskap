@@ -29,7 +29,8 @@ except ImportError as exc:  # pragma: no cover - operator-facing message
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FIKEN = Path("/Users/dilnawazmalik/Documents/innsending_NIF/fiken_transactions.json")
-DEFAULT_MEMBERS = Path("/Users/dilnawazmalik/Documents/medlemmer2026.xlsx")
+DEFAULT_MEMBERS = Path("/Users/dilnawazmalik/Documents/KARATEMEDLEMMER/BOK2.xlsx")
+DEFAULT_PAID_MEMBERS = Path("/Users/dilnawazmalik/Documents/medlemmer2026.xlsx")
 DEFAULT_BANK_PDF_DIR = Path("/Users/dilnawazmalik/Downloads")
 
 OUT_SQL = ROOT / "supabase" / "import_skoger_fiken_styreweb.sql"
@@ -253,22 +254,47 @@ def load_fiken(path: Path):
     return normalized
 
 
-def load_members(path: Path):
+def member_key(member):
+    if member.get("fodselsdato"):
+        return ("name_born", member["fornavn"].strip().lower(), member["etternavn"].strip().lower(), member["fodselsdato"])
+    if member.get("epost"):
+        return ("email", member["epost"])
+    return ("name", member["fornavn"].strip().lower(), member["etternavn"].strip().lower())
+
+
+def load_member_file(path: Path):
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = wb[wb.sheetnames[0]]
     rows = list(ws.iter_rows(values_only=True))
+    header_idx = None
+    header = {}
+    for idx, row in enumerate(rows):
+        labels = {str(value).strip().lower(): pos for pos, value in enumerate(row) if value}
+        if "navn" in labels:
+            header_idx = idx
+            header = labels
+            break
+    if header_idx is None:
+        return []
+
+    name_idx = header["navn"]
+    status_idx = header.get("kontingent")
+    born_idx = header.get("født") or header.get("fodt") or header.get("fødselsdato") or header.get("fodselsdato")
+    email_idx = header.get("e-post") or header.get("epost") or header.get("email")
+    gender_idx = header.get("kjønn") or header.get("kjonn")
+
     members = []
-    for idx, row in enumerate(rows[2:], 1):
-        name = row[1] if len(row) > 1 else None
+    for idx, row in enumerate(rows[header_idx + 1:], 1):
+        name = row[name_idx] if len(row) > name_idx else None
         if not name:
             continue
-        status = str(row[2] or "").strip()
-        born = parse_date(row[3] if len(row) > 3 else None)
-        email = str(row[4] or "").strip().lower() or None
-        gender_raw = str(row[7] or "").strip().lower() if len(row) > 7 and row[7] else ""
+        status = str(row[status_idx] or "").strip() if status_idx is not None and len(row) > status_idx else ""
+        born = parse_date(row[born_idx] if born_idx is not None and len(row) > born_idx else None)
+        email = str(row[email_idx] or "").strip().lower() if email_idx is not None and len(row) > email_idx and row[email_idx] else None
+        gender_raw = str(row[gender_idx] or "").strip().lower() if gender_idx is not None and len(row) > gender_idx and row[gender_idx] else ""
         gender = "mann" if gender_raw == "m" else "kvinne" if gender_raw == "k" else None
         first, last = split_name(str(name))
-        ext_seed = email or f"{first}-{last}-{born or idx}"
+        ext_seed = f"{first}-{last}-{born}" if born else email or f"{first}-{last}-{idx}"
         members.append({
             "external_id": hashlib.sha1(f"styreweb|{ext_seed}".encode("utf-8")).hexdigest()[:16],
             "fornavn": first,
@@ -280,6 +306,23 @@ def load_members(path: Path):
             "betalt": status.lower() == "betalt",
         })
     return members
+
+
+def load_members(path: Path, paid_path: Path = DEFAULT_PAID_MEMBERS):
+    merged = {}
+    for member in load_member_file(path):
+        merged[member_key(member)] = member
+    if paid_path.exists():
+        for member in load_member_file(paid_path):
+            key = member_key(member)
+            if key in merged:
+                merged[key]["kontingent"] = member["kontingent"] or merged[key]["kontingent"]
+                merged[key]["betalt"] = merged[key]["betalt"] or member["betalt"]
+                if not merged[key].get("epost") and member.get("epost"):
+                    merged[key]["epost"] = member["epost"]
+            else:
+                merged[key] = member
+    return sorted(merged.values(), key=lambda item: (item["etternavn"].lower(), item["fornavn"].lower(), item.get("fodselsdato") or ""))
 
 
 def generate_sql(fiken_rows, members, bank_statements):
@@ -415,7 +458,7 @@ def generate_sql(fiken_rows, members, bank_statements):
             f"    select id into member_id from members where organization_id = org and ekstern_kilde = 'styreweb' and ekstern_id = {sql(member['external_id'])} limit 1;",
             "  end if;",
             "  if member_id is not null then",
-            "    insert into payment_claims (organization_id, member_id, fee_id, beskrivelse, belop_ore, betalt_ore, status, forfallsdato)",
+            "    insert into payment_claims (organization_id, member_id, fee_id, beskrivelse, belop_ore, betalt_ore, status, forfall)",
             "    values (org, member_id, fee, "
             + ", ".join([
                 sql(MEMBERSHIP_FEE_NAME),
