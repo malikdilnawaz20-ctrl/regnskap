@@ -244,7 +244,8 @@
 
 <script src="/installer.js"></script>
 <script>
-  // App på hjem-skjermen
+  // App på hjem-skjermen. Én knapp — den skal alltid stå der, og den
+  // skal gjøre jobben med ett trykk der nettleseren tillater det.
   (function () {
     const S = window.Saksflyt;
     if (!S) return;
@@ -256,37 +257,61 @@
     const steg   = document.getElementById("appSteg");
     const tekst  = document.getElementById("appTekst");
 
+    const STANDARDTEKST = tekst.textContent;
+    let stegVist = false;
+
     function tegn() {
       const t = S.tilstand();
-      knapp.hidden = t !== "kan-spørre";
+
+      // Firefox og andre uten støtte: ikke vis båndet i det hele tatt.
+      baand.hidden = t === "ikke-mulig";
+      if (t === "ikke-mulig") return;
+
       status.hidden = t !== "installert";
-      steg.hidden = t !== "ios-manuelt";
+      knapp.hidden  = t === "installert";
+      steg.hidden   = !(t === "ios-manuelt" && stegVist);
 
       if (t === "installert") {
         tekst.textContent = "Saksflyt ligger på hjem-skjermen din. Åpne den derfra, så slipper du adressefeltet.";
-      } else if (t === "ios-manuelt") {
-        tekst.textContent = "På iPhone og iPad legger du den til selv. Det tar tre trykk:";
-        steg.innerHTML = "";
-        S.IOS_STEG.forEach(function (l) {
-          const li = document.createElement("li");
-          li.textContent = l;
-          steg.appendChild(li);
-        });
-      } else if (t === "ikke-mulig") {
-        baand.hidden = true;
+      } else {
+        tekst.textContent = STANDARDTEKST;
+        knapp.textContent = "Legg til på hjem-skjermen";
       }
     }
 
+    function fyllSteg() {
+      steg.innerHTML = "";
+      S.IOS_STEG.forEach(function (linje) {
+        const li = document.createElement("li");
+        li.textContent = linje;
+        steg.appendChild(li);
+      });
+    }
+
     knapp.addEventListener("click", async function () {
-      knapp.disabled = true;
-      const ja = await S.installer();
-      knapp.disabled = false;
-      if (ja) tegn();
+      const t = S.tilstand();
+      if (t === "kan-spørre") {
+        knapp.disabled = true;
+        const ja = await S.installer();
+        knapp.disabled = false;
+        if (ja) tegn();
+        return;
+      }
+      // iPhone og iPad: Safari lar ingen nettside installere seg selv.
+      // Da viser knappen de tre trykkene i stedet.
+      stegVist = true;
+      fyllSteg();
+      tekst.textContent = "Safari lar ingen nettside legge seg til selv. På iPhone gjør du det med tre trykk:";
+      steg.hidden = false;
+      knapp.hidden = true;
     });
 
     window.addEventListener("saksflyt:kan-installeres", tegn);
     window.addEventListener("saksflyt:installert", tegn);
     tegn();
+
+    // beforeinstallprompt kommer ofte litt etter innlasting.
+    setTimeout(tegn, 1200);
   })();
 </script>
 
