@@ -1,11 +1,11 @@
 # Importkontroll - Skoger og Fjell
 
-Generert: 2026-08-24T10:39:48
+Generert: 2026-08-24T10:59:24
 
 ## Kilder
 
 - Fiken: `/Users/dilnawazmalik/Documents/innsending_NIF/fiken_transactions.json`
-- Styreweb/medlemmer: `/Users/dilnawazmalik/Documents/medlemmer2026.xlsx`
+- Styreweb/medlemmer: `/Users/dilnawazmalik/Documents/KARATEMEDLEMMER/BOK2.xlsx`
 - Kontoutskrifter: `/Users/dilnawazmalik/Downloads`
 
 ## Kontoutskrifter 2020-2023
@@ -60,12 +60,24 @@ Kontoer brukt:
 
 ## Styreweb-medlemmer
 
-- Medlemmer i fil: 12
+- Medlemmer i fil: 253
 - Kontingent betalt: 12
-- Ikke betalt/ukjent: 0
+- Ikke betalt/ukjent: 241
 
 ## Importfil
 
 - SQL: `/Users/dilnawazmalik/Documents/Regnskap/saksflyt/supabase/import_skoger_fiken_styreweb.sql`
 - Importen er laget idempotent med faste bilagsnummer for Fiken-rader.
 - Medlemsbetalinger opprettes som betalingskrav for `Medlemskontingent 2026`.
+
+## Import kjørt i Supabase
+
+- Kjørt: 2026-08-24
+- Metode: autentisert API-import mot Supabase med appens egne tilgangsregler
+- Organisasjon: Skoger og Fjell kampsportklubb, org.nr 912484335
+- Transaksjoner totalt: 199
+- Fiken-transaksjoner: 167
+- Bankspor fra kontoutskrifter: 32
+- Styreweb-medlemmer: 253
+- Betalte medlemskrav: 12
+- Dokumentspor for kontoutskrifter: 32

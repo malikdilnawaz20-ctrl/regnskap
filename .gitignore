@@ -3,3 +3,5 @@ node_modules/
 *.log
 supabase/.temp/
 .rydd/
+__pycache__/
+*.pyc
