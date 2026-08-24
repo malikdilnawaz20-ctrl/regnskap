@@ -944,7 +944,18 @@ async function lastNedAlt() {
   } catch (e) { visFeil(e, "Nedlasting"); }
 }
 
-const MAPPER = ["Årsmøter", "Styremøter", "Avtaler", "Tilskudd", "Forsikring", "Regnskap", "Vedtekter", "Andre dokumenter"];
+const MAPPER = [
+  "Årsprotokoller",
+  "Ekstraordinære generalforsamlinger",
+  "Styremøter",
+  "Årsberetninger",
+  "Regnskap",
+  "Tilskudd",
+  "Avtaler",
+  "Forsikring",
+  "Vedtekter",
+  "Andre dokumenter"
+];
 
 async function dokumenter() {
   const { data, error } = await velgFra("documents", "*").order("opprettet", { ascending: false });
@@ -971,7 +982,10 @@ async function dokumenter() {
     kanSkrive() ? knapp("Last opp dokument", { klasse: "primary", ikon: "last", ved: lastOppDokument }) : null
   ]));
 
-  for (const [mappe, filer] of Object.entries(grupper)) {
+  const mappeRekke = [...MAPPER, ...Object.keys(grupper).filter(m => !MAPPER.includes(m))];
+  for (const mappe of mappeRekke) {
+    const filer = grupper[mappe];
+    if (!filer?.length) continue;
     boks.append(kort({
       tittel: mappe,
       beskrivelse: `${filer.length} dokument${filer.length === 1 ? "" : "er"}`,

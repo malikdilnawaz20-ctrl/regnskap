@@ -92,3 +92,23 @@ Kontoer brukt:
 - Antall utbetalingsrader som omfattes: 56.
 - Utbetalinger i 2025 vises med godkjenningsspor: `Godkjent av Denis/Malik`.
 - Antall 2025-utbetalingsrader som omfattes: 101.
+
+## Prosjekter og tilskudd
+
+- Åpen Hall 2025 er opprettet/oppdatert som prosjekt med 50 000,00 kr i tilskudd fra Drammen idrettsråd - Aktive Lokalsamfunn.
+- Åpen Hall 2026 er opprettet som aktivt prosjekt med 60 000,00 kr, basert på opplysning om tidligere tildeling i år. Vedtaksbrev kan legges til når det foreligger.
+- Ungdommer i IL 2026 er opprettet/oppdatert som prosjekt med 60 000,00 kr i tilskudd fra Drammen idrettsråd - Aktive Lokalsamfunn.
+- `Tilsagnsbrev Skoger og Fjell karate klubb.pdf` er lastet opp i mappen `Tilskudd`.
+- `Tildelingsbrev Aktive Lokalsamfunn Skoger og Fjell karateklubb.pdf` er lastet opp i mappen `Tilskudd` som dokumentasjon for Åpen Hall 2025.
+
+## Dokumentarkiv
+
+- Dokumentseksjonen har fått faste kategorier for `Årsprotokoller`, `Ekstraordinære generalforsamlinger`, `Styremøter`, `Årsberetninger`, `Regnskap`, `Tilskudd`, `Avtaler`, `Forsikring`, `Vedtekter` og `Andre dokumenter`.
+- Opplastingsknappen bruker de samme kategoriene, slik at nye dokumenter havner i riktig seksjon.
+- 17 dokumenter fra `innsending_klar` er lastet opp i arkivet:
+  - 2 årsmøteprotokoller i `Årsprotokoller`
+  - 1 ekstraordinært årsmøte i `Ekstraordinære generalforsamlinger`
+  - 8 styremøtereferater i `Styremøter`
+  - 1 årsberetning i `Årsberetninger`
+  - 4 regnskapsdokumenter i `Regnskap`
+  - 1 gjeldende lov i `Vedtekter`
