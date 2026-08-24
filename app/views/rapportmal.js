@@ -500,12 +500,224 @@ export function prosjektregnskap(g, prosjekt) {
 }
 
 /* =====================================================================
+   8b. Visuelle elementer
+   Grafikken legger ingenting til tallene. Den gjør bare fordelingen
+   lesbar ved første øyekast — for et årsmøte som ikke leser tabeller.
+   Alt er SVG, slik at det ser likt ut på skjerm og på papir.
+   ===================================================================== */
+
+const GRONN = "#087F7A", RUST = "#B3352F", GRA = "#E4E9EE";
+
+/** Store tall øverst i dokumentet. */
+export function noekkeltall(liste) {
+  return el("div", { class: "noekkeltall" }, liste.filter(Boolean).map(n =>
+    el("div", { class: "tall" + (n.tone ? " " + n.tone : "") }, [
+      el("span", { class: "merkelapp" }, n.merkelapp),
+      el("strong", {}, [n.verdi, n.enhet ? el("span", { class: "enhet" }, n.enhet) : null]),
+      n.under ? el("span", { class: "under" }, n.under) : null
+    ])));
+}
+
+const trygg = s => String(s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/**
+ * Vannrette stolper. rader: [{navn, ore}] — bredden er andel av største.
+ * Beløpet står alltid skrevet ved siden av, så diagrammet aldri er
+ * eneste kilde til et tall.
+ */
+export function stolper(rader, { farge = GRONN, maks = 7 } = {}) {
+  const vist = rader.slice(0, maks);
+  const resten = rader.slice(maks);
+  if (resten.length) {
+    vist.push({ navn: `${resten.length} øvrige`, ore: resten.reduce((s, r) => s + r.ore, 0), ovrig: true });
+  }
+  if (!vist.length) return null;
+
+  const stor = Math.max(...vist.map(r => Math.abs(r.ore)), 1);
+  const H = 21, mellom = 7, navnB = 205, talB = 92, bredde = 640;
+  const barB = bredde - navnB - talB - 12;
+  const hoyde = vist.length * (H + mellom);
+
+  const deler = vist.map((r, i) => {
+    const y = i * (H + mellom);
+    const b = Math.max(2, Math.round((Math.abs(r.ore) / stor) * barB));
+    return `
+      <text x="0" y="${y + H - 6}" class="d-navn">${trygg(r.navn)}</text>
+      <rect x="${navnB}" y="${y + 3}" width="${barB}" height="${H - 6}" rx="3" fill="${GRA}"/>
+      <rect x="${navnB}" y="${y + 3}" width="${b}" height="${H - 6}" rx="3" fill="${r.ovrig ? "#9BD8D2" : farge}"/>
+      <text x="${bredde}" y="${y + H - 6}" class="d-tall" text-anchor="end">${trygg(kr0(r.ore))}</text>`;
+  }).join("");
+
+  return el("div", {
+    class: "diagram",
+    html: `<svg viewBox="0 0 ${bredde} ${hoyde}" role="img" preserveAspectRatio="xMidYMin meet">${deler}</svg>`
+  });
+}
+
+/** To stolper mot hverandre: inn mot ut, med fjoråret som tynn strek. */
+export function inntektMotKostnad(innN, utN, innF, utF, aar) {
+  const stor = Math.max(innN, utN, innF, utF, 1);
+  const bredde = 640, navnB = 150, talB = 100, barB = bredde - navnB - talB - 12;
+  const rad = (i, merkelapp, naa, foer, farge) => {
+    const y = i * 62;
+    const b = Math.max(2, Math.round((naa / stor) * barB));
+    const bf = foer ? Math.max(2, Math.round((foer / stor) * barB)) : 0;
+    return `
+      <text x="0" y="${y + 21}" class="d-navn b">${trygg(merkelapp)}</text>
+      <rect x="${navnB}" y="${y + 6}" width="${barB}" height="20" rx="4" fill="${GRA}"/>
+      <rect x="${navnB}" y="${y + 6}" width="${b}" height="20" rx="4" fill="${farge}"/>
+      <text x="${bredde}" y="${y + 21}" class="d-tall b" text-anchor="end">${trygg(kr0(naa))}</text>
+      ${foer ? `
+        <rect x="${navnB}" y="${y + 32}" width="${bf}" height="7" rx="3" fill="${farge}" opacity=".28"/>
+        <text x="${navnB + bf + 8}" y="${y + 39}" class="d-fjor">${aar - 1}: ${trygg(kr0(foer))}</text>` : ""}`;
+  };
+  return el("div", {
+    class: "diagram",
+    html: `<svg viewBox="0 0 ${bredde} ${(innF || utF) ? 124 : 108}" role="img" preserveAspectRatio="xMidYMin meet">
+      ${rad(0, "Inntekter", innN, innF, GRONN)}
+      ${rad(1, "Kostnader", utN, utF, RUST)}
+    </svg>`
+  });
+}
+
+/**
+ * Fire setninger om året, utledet av bilagene. Ingen vurderinger —
+ * bare det tallene faktisk viser.
+ */
+function aaretIKorteTrekk(g) {
+  const innN = sum(g.iAar, "inntekt"), utN = sum(g.iAar, "utgift");
+  const inn = perKategori(g.iAar, g.kategorier, "inntekt").sort((a, b) => b.ore - a.ore)[0];
+  const ut = perKategori(g.iAar, g.kategorier, "utgift").sort((a, b) => b.ore - a.ore)[0];
+  const andel = (del, hele) => hele ? Math.round((del / hele) * 100) + " %" : "—";
+
+  const utbetalinger = g.iAar.filter(t => t.type === "utgift");
+  const utenVedlegg = utbetalinger.filter(t => !g.medVedlegg.has(t.id)).length;
+
+  const medBilag = new Set(g.iAar.map(t => t.project_id).filter(Boolean));
+  const prosj = g.prosjekter.filter(p => medBilag.has(p.id));
+  const tilskudd = prosj.reduce((s, p) => s + (p.tilskudd_ore || 0), 0);
+
+  const punkter = [
+    inn && `Største inntektskilde er ${inn.navn} med ${kr0(inn.ore)} kr, ${andel(inn.ore, innN)} av inntektene.`,
+    ut && `Største kostnadspost er ${ut.navn} med ${kr0(ut.ore)} kr, ${andel(ut.ore, utN)} av kostnadene.`,
+    prosj.length
+      ? `${prosj.length} prosjekt${prosj.length === 1 ? "" : "er"} med øremerkede tilskudd på ${kr0(tilskudd)} kr er ført med eget prosjektregnskap.`
+      : null,
+    utbetalinger.length
+      ? (utenVedlegg === 0
+        ? `Alle ${utbetalinger.length} utbetalinger i året har vedlegg.`
+        : `${utenVedlegg} av ${utbetalinger.length} utbetalinger mangler vedlegg. Se noten om dokumentasjon.`)
+      : null
+  ].filter(Boolean);
+
+  if (!punkter.length) return null;
+  return el("div", { class: "forside-trekk" }, [
+    el("h2", {}, "Året i korte trekk"),
+    el("ul", {}, punkter.map(t => el("li", {}, t)))
+  ]);
+}
+
+/**
+ * Forsiden. Den skal si hvem, hva og hvilket år på ett blikk, og vise
+ * de fire tallene noen faktisk spør om på et årsmøte.
+ */
+export function forside(g, { faktiskSaldoOre = null } = {}) {
+  const org = S.org || {};
+  const innN = sum(g.iAar, "inntekt"), utN = sum(g.iAar, "utgift");
+  const innF = sum(g.iFjor, "inntekt"), utF = sum(g.iFjor, "utgift");
+  const res = innN - utN;
+
+  const tom = new Date(g.aar, 11, 31).toISOString().slice(0, 10);
+  const tilOgMed = g.alle.filter(t => String(t.dato) <= tom);
+  const aapning = g.kontoer.reduce((s, k) => s + (k.aapningssaldo_ore || 0), 0);
+  const beholdningOre = aapning + sum(tilOgMed, "inntekt") - sum(tilOgMed, "utgift");
+
+  const innhold = [
+    "Resultatregnskap med sammenligningstall",
+    "Beholdning og avstemming mot bank",
+    "Noter",
+    "Bilagsjournal — samtlige bilag i perioden"
+  ];
+
+  return el("article", { class: "ark forside" }, [
+    el("header", { class: "ark-hode" }, [
+      el("div", {}, [
+        el("div", { class: "klubb" }, org.navn || "Organisasjon"),
+        el("div", { class: "orgnr" }, org.orgnr ? "Organisasjonsnummer " + org.orgnr : "")
+      ]),
+      el("div", { class: "hoyre" }, [
+        el("div", { class: "type" }, "Årsregnskap"),
+        el("div", { class: "periode" }, String(g.aar))
+      ])
+    ]),
+
+    el("div", { class: "forside-midt" }, [
+      el("div", { class: "aarstall" }, String(g.aar)),
+      el("h1", {}, "Årsregnskap"),
+      el("p", { class: "ingress" },
+        `Oppstilling av inntekter, kostnader og beholdning for regnskapsåret ${g.aar}, `
+        + `med noter, kontrollpunkter og fullstendig bilagsjournal.`),
+
+      noekkeltall([
+        { merkelapp: "Driftsinntekter", verdi: kr0(innN), enhet: "kr", under: g.iFjor.length ? `${g.aar - 1}: ${kr0(innF)} kr` : null },
+        { merkelapp: "Driftskostnader", verdi: kr0(utN), enhet: "kr", under: g.iFjor.length ? `${g.aar - 1}: ${kr0(utF)} kr` : null },
+        { merkelapp: "Årsresultat", verdi: kr0(res), enhet: "kr", tone: res >= 0 ? "pos" : "neg", under: res >= 0 ? "Overskudd" : "Underskudd" },
+        {
+          merkelapp: "Beholdning 31.12", verdi: kr0(beholdningOre), enhet: "kr",
+          under: faktiskSaldoOre === null ? "Utledet av bilag" : "Avstemt mot bank"
+        }
+      ]),
+
+      el("div", { class: "forside-graf" }, [
+        el("h2", {}, `Inntekter mot kostnader ${g.aar}`),
+        inntektMotKostnad(innN, utN, innF, utF, g.aar)
+      ]),
+
+      aaretIKorteTrekk(g)
+    ]),
+
+    el("div", { class: "forside-bunn" }, [
+      el("div", { class: "innholdsliste" }, [
+        el("b", {}, "Dokumentet inneholder"),
+        el("ul", {}, innhold.map(t => el("li", {}, t)))
+      ]),
+      el("div", { class: "avgitt" }, [
+        el("b", {}, g.laast?.laast ? "Regnskapsåret er låst" : "Regnskapsåret er åpent"),
+        el("p", {}, `Bygget på ${g.iAar.length} bilag ført i ${g.aar}. `
+          + `Framstilt ${tidspunkt(new Date())} i Saksflyt.`)
+      ])
+    ])
+  ]);
+}
+
+/**
+ * Hvor kronene kom fra og hvor de tok veien. Samme tall som tabellen
+ * over, bare sortert etter størrelse.
+ */
+export function fordelingsgrafikk(g) {
+  const inn = perKategori(g.iAar, g.kategorier, "inntekt")
+    .map(r => ({ navn: r.navn, ore: r.ore })).sort((a, b) => b.ore - a.ore);
+  const ut = perKategori(g.iAar, g.kategorier, "utgift")
+    .map(r => ({ navn: r.navn, ore: r.ore })).sort((a, b) => b.ore - a.ore);
+  if (!inn.length && !ut.length) return null;
+
+  return seksjon("Slik fordeler kronene seg", [
+    inn.length ? el("h3", { class: "diagram-tittel" }, "Inntekter etter kategori") : null,
+    stolper(inn, { farge: GRONN }),
+    ut.length ? el("h3", { class: "diagram-tittel" }, "Kostnader etter kategori") : null,
+    stolper(ut, { farge: RUST })
+  ], "Beløpene er de samme som i resultatregnskapet over, sortert etter størrelse.");
+}
+
+/* =====================================================================
    9. Ferdige dokumenter
    ===================================================================== */
 
 export function dokumentArsregnskap(g, { faktiskSaldoOre = null } = {}) {
   const inn = sum(g.iAar, "inntekt"), ut = sum(g.iAar, "utgift");
   return [
+    forside(g, { faktiskSaldoOre }),
     ark({
       type: "Årsregnskap",
       periode: `1. januar – 31. desember ${g.aar}`,
@@ -519,6 +731,7 @@ export function dokumentArsregnskap(g, { faktiskSaldoOre = null } = {}) {
       ],
       seksjoner: [
         arsregnskap(g),
+        fordelingsgrafikk(g),
         ...beholdning(g, faktiskSaldoOre),
         standardnoter(g)
       ],
@@ -673,6 +886,18 @@ export async function apneProsjektrapport(prosjektId) {
   const p = g.prosjekter.find(x => x.id === prosjektId);
   if (!p) return toast("Fant ikke prosjektet", "Prosjektet finnes ikke lenger.", true);
   visDokument({ navn: p.navn, bygg: (gg, valg) => dokumentProsjekt(gg, valg) }, g, p);
+}
+
+/** Lar Økonomi-siden åpne selve årsrapporten uten å bytte side. */
+export async function apneArsrapport(aar) {
+  const g = await hentGrunnlag(aar || valgtAar || new Date().getFullYear());
+  visDokument({ navn: `Årsregnskap ${g.aar}`, bygg: gg => dokumentArsregnskap(gg) }, g, null);
+}
+
+/** Samme for revisjonsgrunnlaget. */
+export async function apneRevisjonsgrunnlag(aar) {
+  const g = await hentGrunnlag(aar || valgtAar || new Date().getFullYear());
+  visDokument({ navn: `Revisjonsgrunnlag ${g.aar}`, bygg: gg => dokumentRevisor(gg) }, g, null);
 }
 
 function rapportkort({ tittel, merke: merkeTekst, beskrivelse, hoyre }) {

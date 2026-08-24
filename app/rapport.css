@@ -142,6 +142,92 @@ table.regnskap tbody tr:hover{background:none}
   border-top:1px solid #EEF1F5;padding-top:5px
 }
 
+
+/* =====================================================================
+   Forside, nøkkeltall og diagram
+   Forsiden er hele arket: brevhode øverst, tallene i midten, innhold
+   og opprinnelse nederst.
+   ===================================================================== */
+
+.ark.forside{
+  display:flex;flex-direction:column;
+  min-height:297mm;
+}
+.ark.forside .forside-midt{
+  flex:1 0 auto;display:flex;flex-direction:column;justify-content:center;padding:6mm 0 10mm
+}
+.ark.forside .aarstall{
+  font-size:64pt;font-weight:700;letter-spacing:-.045em;line-height:.9;
+  color:#087F7A;margin:0 0 2px
+}
+.ark.forside h1{font-size:26pt;margin:0 0 6px}
+.ark.forside .ingress{font-size:10.5pt;margin:0 0 22px;max-width:62ch}
+
+.noekkeltall{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  border:1px solid #E4E9EE;border-radius:8px;overflow:hidden;
+  background:#FFFFFF;
+}
+.noekkeltall .tall{padding:12px 14px;border-right:1px solid #EEF1F5;min-width:0}
+.noekkeltall .tall:last-child{border-right:0}
+.noekkeltall .merkelapp{
+  display:block;font-size:7.4pt;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:#667085
+}
+.noekkeltall .tall strong{
+  display:block;font-size:13.5pt;font-weight:680;letter-spacing:-.03em;
+  margin-top:4px;color:#17212B;white-space:nowrap
+}
+.noekkeltall .tall strong .enhet{font-size:9.5pt;font-weight:600;color:#667085;margin-left:2px}
+.noekkeltall .tall.pos strong{color:#1F7A4D}
+.noekkeltall .tall.neg strong{color:#B3352F}
+.noekkeltall .under{display:block;font-size:8pt;color:#8A93A2;margin-top:2px}
+
+.forside-graf{margin-top:24px}
+.forside-graf h2{
+  font-size:8.4pt;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:#667085;margin:0 0 8px
+}
+
+.forside-trekk{margin-top:20px}
+.forside-trekk h2{
+  font-size:8.4pt;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:#667085;margin:0 0 7px
+}
+.forside-trekk ul{margin:0;padding:0;list-style:none}
+.forside-trekk li{
+  font-size:9.6pt;color:#3D4A5A;line-height:1.55;
+  padding:5px 0 5px 15px;position:relative;border-top:1px solid #F1F4F7
+}
+.forside-trekk li:first-child{border-top:0}
+.forside-trekk li::before{
+  content:"";position:absolute;left:0;top:11px;
+  width:5px;height:5px;border-radius:50%;background:#087F7A
+}
+
+.forside-bunn{
+  display:grid;grid-template-columns:1.2fr 1fr;gap:24px;
+  border-top:1px solid #E4E9EE;padding-top:12px;margin-top:auto
+}
+.forside-bunn b{display:block;font-size:8.4pt;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#667085;margin-bottom:5px}
+.forside-bunn ul{margin:0;padding-left:15px}
+.forside-bunn li{font-size:9pt;color:#3D4A5A;margin:2px 0}
+.forside-bunn .avgitt p{margin:0;font-size:9pt;color:#3D4A5A;line-height:1.5}
+.ark.forside .ark-bunn{display:none}
+
+/* --- diagram --- */
+.diagram{margin:0 0 14px}
+.diagram svg{width:100%;height:auto;display:block;overflow:visible}
+.diagram .d-navn{font-size:9px;fill:#3D4A5A}
+.diagram .d-navn.b{font-size:10px;font-weight:600;fill:#17212B}
+.diagram .d-tall{font-size:9px;fill:#17212B;font-variant-numeric:tabular-nums}
+.diagram .d-tall.b{font-size:10.5px;font-weight:650}
+.diagram .d-fjor{font-size:8px;fill:#8A93A2}
+.diagram-tittel{
+  font-size:8.4pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:#667085;margin:12px 0 7px
+}
+
 /* =====================================================================
    Utskrift
    ===================================================================== */
@@ -151,7 +237,14 @@ table.regnskap tbody tr:hover{background:none}
   html,body{background:#FFFFFF!important;margin:0;padding:0}
   body *{visibility:hidden}
   .ark, .ark *{visibility:visible}
-  .dok-scene{display:block;padding:0;background:#FFFFFF}
+  /* Dokumentet ligger i et overlegg med egen rulling. Ved utskrift må
+     det slippes løs, ellers får man bare den synlige delen på ett ark. */
+  .overlay{
+    position:static!important;inset:auto!important;overflow:visible!important;
+    display:block!important;padding:0!important;background:#FFFFFF!important;
+    backdrop-filter:none!important;height:auto!important;max-height:none!important
+  }
+  .dok-scene{display:block;padding:0;background:#FFFFFF;height:auto;overflow:visible}
   .dok-verktoy{display:none!important}
   .app, .sidebar, .mobilnav, .topbar, .themetoggle, .toast{display:none!important}
   .ark{
@@ -160,16 +253,29 @@ table.regnskap tbody tr:hover{background:none}
     page-break-after:always
   }
   .ark:last-child{page-break-after:auto}
-  .ark-bunn{position:fixed;left:16mm;right:16mm;bottom:8mm}
+  .ark-bunn{
+    position:static;left:auto;right:auto;bottom:auto;
+    margin-top:16px;break-inside:avoid
+  }
   .dok-seksjon{break-inside:auto}
+  .ark.forside{min-height:auto;height:296mm}
+  .noekkeltall, .diagram, .forside-bunn, .forside-trekk{break-inside:avoid}
+  .noekkeltall, .noekkeltall .tall{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   table.regnskap tr{break-inside:avoid}
   table.regnskap thead{display:table-header-group}
   .signaturer, .kontroll, .noter .note{break-inside:avoid}
   a[href]::after{content:""}
 }
 
-@media (max-width:820px){
+@media screen and (max-width:820px){
   .ark{padding:14mm 10mm 20mm;font-size:10pt}
   .dok-fakta{grid-template-columns:repeat(2,1fr)}
+  .noekkeltall{grid-template-columns:repeat(2,1fr)}
+  .noekkeltall .tall:nth-child(2){border-right:0}
+  .noekkeltall .tall:nth-child(-n+2){border-bottom:1px solid #EEF1F5}
+  .ark.forside{min-height:auto}
+  .ark.forside .aarstall{font-size:46pt}
+  .ark.forside h1{font-size:21pt}
+  .forside-bunn{grid-template-columns:1fr;gap:14px}
   .signaturer .rader{grid-template-columns:1fr;gap:22px}
 }

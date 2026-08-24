@@ -9,10 +9,7 @@ import {
   laster, kr, kr0, tilOre, dato, datoKort, iDag, eksporterExcel, lesExcel, velg, db
 } from "../lib.js";
 import { S, kanOkonomi, velgFra, settInn, paaNytt, aarNaa, erAdmin } from "../store.js";
-
-const BANK_KONTROLL_SALDO_ORE = 101_700;
-const HISTORISK_UTBETALING_GODKJENT = "Godkjent av Dilara/Denis";
-const UTBETALING_2025_GODKJENT = "Godkjent av Denis/Malik";
+import { apneArsrapport, apneRevisjonsgrunnlag } from "./rapportmal.js";
 
 /* =====================================================================
    Felles hjelpere
@@ -56,14 +53,6 @@ function statusTekst(s) {
 }
 function statusFarge(s) {
   return { planlegges: "neutral", aktiv: "blue", avsluttet: "neutral", rapportert: "green" }[s] || "neutral";
-}
-
-function godkjenningForTransaksjon(t) {
-  const aar = t.regnskapsaar || Number(String(t.dato || "").slice(0, 4));
-  if (t.type !== "utgift") return "";
-  if (aar >= 2020 && aar <= 2024) return HISTORISK_UTBETALING_GODKJENT;
-  if (aar === 2025) return UTBETALING_2025_GODKJENT;
-  return "";
 }
 
 /* =====================================================================
@@ -124,7 +113,7 @@ export async function hentOkonomiTall() {
 
 async function hentTransaksjoner(filter) {
   let sp = velgFra("transactions",
-    "id,bilagsnummer,dato,type,beskrivelse,belop_ore,motpart,category_id,project_id,regnskapsaar,categories(navn),projects(navn)")
+    "id,bilagsnummer,dato,type,beskrivelse,belop_ore,motpart,category_id,project_id,categories(navn),projects(navn)")
     .eq("regnskapsaar", filter.aar)
     .order("dato", { ascending: false })
     .order("bilagsnummer", { ascending: false });
@@ -150,8 +139,7 @@ function txnRad(t, harVedlegg) {
     el("td", {}, t.categories?.navn || "—"),
     el("td", {}, t.projects?.navn || "—"),
     el("td", { class: "num" }, (t.type === "utgift" ? "− " : "") + kr(t.belop_ore)),
-    el("td", {}, harVedlegg.has(t.id) ? pille("Vedlagt", "green") : pille("Mangler vedlegg", "gold")),
-    el("td", {}, godkjenningForTransaksjon(t) ? pille(godkjenningForTransaksjon(t), "green") : "—")
+    el("td", {}, harVedlegg.has(t.id) ? pille("Vedlagt", "green") : pille("Mangler vedlegg", "gold"))
   ]);
 }
 
@@ -221,9 +209,8 @@ export const okonomiView = {
       hentOkonomiTall(), hentAlleKategorier(), hentProsjekter()
     ]);
 
-    const statsRad = el("div", { class: "grid g5" }, [
+    const statsRad = el("div", { class: "grid g4" }, [
       kpi({ ikon: "okonomi", nokkel: "Saldo", verdi: kr(tall.saldo_ore) + " kr" }),
-      kpi({ ikon: "betaling", nokkel: "Bank kontroll", verdi: kr(BANK_KONTROLL_SALDO_ORE) + " kr", under: "Faktisk saldo oppgitt" }),
       kpi({ ikon: "opp", nokkel: "Inntekter hittil i år", verdi: kr(tall.inntekt_ore) + " kr" }),
       kpi({ ikon: "betaling", nokkel: "Utgifter hittil i år", verdi: kr(tall.utgift_ore) + " kr" }),
       kpi({ ikon: "rapport", nokkel: "Resultat", verdi: kr(tall.resultat_ore) + " kr", farge: tall.resultat_ore >= 0 ? "pos" : "neg" })
@@ -260,7 +247,7 @@ export const okonomiView = {
         const rader = await hentTransaksjoner(filter);
         const harVedlegg = await hentVedleggsSet(rader.map(r => r.id));
         tabellHolder.replaceChildren(tabell(
-          [{ t: "Bilag" }, { t: "Dato" }, { t: "Beskrivelse" }, { t: "Kategori" }, { t: "Prosjekt" }, { t: "Beløp", num: true }, { t: "Vedlegg" }, { t: "Godkjenning" }],
+          [{ t: "Bilag" }, { t: "Dato" }, { t: "Beskrivelse" }, { t: "Kategori" }, { t: "Prosjekt" }, { t: "Beløp", num: true }, { t: "Vedlegg" }],
           rader.map(t => txnRad(t, harVedlegg)),
           "Ingen transaksjoner funnet for dette filteret."
         ));
@@ -300,8 +287,7 @@ export const okonomiView = {
               "Bilagsnr": t.bilagsnummer, "Dato": datoKort(t.dato), "Type": t.type === "utgift" ? "Utgift" : "Inntekt",
               "Beskrivelse": t.beskrivelse, "Motpart": t.motpart || "", "Kategori": t.categories?.navn || "",
               "Prosjekt": t.projects?.navn || "",
-              "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1),
-              "Godkjenning": godkjenningForTransaksjon(t)
+              "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1)
             }))
           });
           toast("Eksportert", "Regnearket er lastet ned.");
@@ -456,10 +442,7 @@ async function hentProsjektStatus() {
 }
 
 function prosjektKort(p, rot) {
-  const bruktOpp = /brukt opp/i.test(p.beskrivelse || "");
-  const bruktVisning = bruktOpp && p.tilskudd_ore > 0 ? p.tilskudd_ore : p.brukt_ore;
-  const gjenstaarVisning = bruktOpp ? 0 : p.gjenstaar_ore;
-  const pct = p.tilskudd_ore > 0 ? Math.round((bruktVisning / p.tilskudd_ore) * 100) : 0;
+  const pct = p.tilskudd_ore > 0 ? Math.round((p.brukt_ore / p.tilskudd_ore) * 100) : 0;
   return kort({
     eyebrow: p.tilskuddsgiver || "Uten tilskuddsgiver",
     tittel: p.navn,
@@ -467,14 +450,11 @@ function prosjektKort(p, rot) {
     innhold: [
       el("dl", { class: "kv" }, [
         el("dt", {}, "Tilskudd"), el("dd", {}, kr0(p.tilskudd_ore) + " kr"),
-        el("dt", {}, "Brukt"), el("dd", {}, kr0(bruktVisning) + " kr"),
-        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(gjenstaarVisning) + " kr")
+        el("dt", {}, "Brukt"), el("dd", {}, kr0(p.brukt_ore) + " kr"),
+        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(p.gjenstaar_ore) + " kr")
       ]),
       kpi({ nokkel: "Brukt av tilskudd", verdi: pct + " %", andel: pct }),
-      el("div", { class: "rowline" }, [
-        pille(statusTekst(p.status), statusFarge(p.status)),
-        bruktOpp ? pille("Brukt opp", "green") : null
-      ])
+      pille(statusTekst(p.status), statusFarge(p.status))
     ],
     hoyre: el("button", { class: "btn sm", onclick: () => visProsjektDetalj(rot, p.id) }, "Åpne")
   });
@@ -561,9 +541,6 @@ async function visProsjektDetalj(rot, id) {
 
     const brukt = (bilag || []).filter(t => t.type === "utgift").reduce((s, t) => s + t.belop_ore, 0);
     const mottatt = (bilag || []).filter(t => t.type === "inntekt").reduce((s, t) => s + t.belop_ore, 0);
-    const bruktOpp = /brukt opp/i.test(p.beskrivelse || "");
-    const bruktVisning = bruktOpp && p.tilskudd_ore > 0 ? p.tilskudd_ore : brukt;
-    const gjenstaarVisning = bruktOpp ? 0 : p.tilskudd_ore - brukt;
 
     const tilbake = el("button", { class: "btn sm", onclick: () => visProsjektListe(rot) }, "← Tilbake til prosjekter");
     const eksportKnapp = el("button", { class: "btn", onclick: () => eksporterProsjekt(p, bilag || []) }, "Eksporter prosjektregnskap");
@@ -575,8 +552,8 @@ async function visProsjektDetalj(rot, id) {
       innhold: el("dl", { class: "kv" }, [
         el("dt", {}, "Tilskudd"), el("dd", {}, kr0(p.tilskudd_ore) + " kr"),
         el("dt", {}, "Mottatt"), el("dd", {}, kr0(mottatt) + " kr"),
-        el("dt", {}, "Brukt"), el("dd", {}, kr0(bruktVisning) + " kr"),
-        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(gjenstaarVisning) + " kr"),
+        el("dt", {}, "Brukt"), el("dd", {}, kr0(brukt) + " kr"),
+        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(p.tilskudd_ore - brukt) + " kr"),
         el("dt", {}, "Rapporteringsfrist"), el("dd", {}, dato(p.rapportfrist))
       ]),
       hoyre: eksportKnapp
@@ -718,7 +695,7 @@ async function eksporterBalanse() {
 }
 
 async function eksporterHovedbok(aar) {
-  const { data, error } = await velgFra("transactions", "bilagsnummer,dato,type,beskrivelse,belop_ore,konto_nummer,regnskapsaar,categories(navn)")
+  const { data, error } = await velgFra("transactions", "bilagsnummer,dato,type,beskrivelse,belop_ore,konto_nummer,categories(navn)")
     .eq("regnskapsaar", aar).order("konto_nummer").order("dato");
   if (error) throw error;
   const rader = (data || []).map(t => ({
@@ -727,22 +704,20 @@ async function eksporterHovedbok(aar) {
     "Bilagsnr": t.bilagsnummer,
     "Dato": datoKort(t.dato),
     "Beskrivelse": t.beskrivelse,
-    "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1),
-    "Godkjenning": godkjenningForTransaksjon(t)
+    "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1)
   }));
   await eksporterExcel(`hovedbok-${aar}.xlsx`, { Hovedbok: rader });
 }
 
 async function eksporterBilagsjournal(aar) {
   const { data, error } = await velgFra("transactions",
-    "bilagsnummer,dato,type,beskrivelse,motpart,belop_ore,regnskapsaar,categories(navn),projects(navn)")
+    "bilagsnummer,dato,type,beskrivelse,motpart,belop_ore,categories(navn),projects(navn)")
     .eq("regnskapsaar", aar).order("bilagsnummer");
   if (error) throw error;
   const rader = (data || []).map(t => ({
     "Bilagsnr": t.bilagsnummer, "Dato": datoKort(t.dato), "Type": t.type === "utgift" ? "Utgift" : "Inntekt",
     "Beskrivelse": t.beskrivelse, "Motpart": t.motpart || "", "Kategori": t.categories?.navn || "",
-    "Prosjekt": t.projects?.navn || "", "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)),
-    "Godkjenning": godkjenningForTransaksjon(t)
+    "Prosjekt": t.projects?.navn || "", "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2))
   }));
   await eksporterExcel(`bilagsjournal-${aar}.xlsx`, { Bilagsjournal: rader });
 }
@@ -1082,8 +1057,30 @@ export const rapporterView = {
       knappRad("Bilagsjournal", () => eksporterBilagsjournal(aar)),
       knappRad("Prosjektregnskap", () => eksporterAlleProsjekter()),
       knappRad("Inntekter og utgifter per aktivitet", () => eksporterPerAktivitet(aar)),
-      knappRad("Årsoversikt", () => eksporterAarsoversikt(aar))
+      knappRad("Årsoversikt (tallgrunnlag)", () => eksporterAarsoversikt(aar))
     ]);
+
+    // Selve årsrapporten er et dokument, ikke et regneark. Excel-filene
+    // under er råtallene til videre bearbeiding.
+    function dokumentKnapp(tekst, klasse, fn) {
+      return el("button", {
+        class: "btn " + klasse, onclick: async () => {
+          try { await fn(); } catch (e) { visFeil(e, tekst); }
+        }
+      }, tekst);
+    }
+
+    const arsrapportKort = kort({
+      tittel: "Årsrapport",
+      beskrivelse: "Ferdig oppsatt dokument til årsmøtet, revisor og kontrollutvalget: "
+        + "forside med nøkkeltall, resultatregnskap med fjorårstall, beholdning avstemt "
+        + "mot bank, noter og full bilagsjournal. Åpne dokumentet og velg «Skriv ut eller "
+        + "lagre som PDF».",
+      innhold: el("div", { class: "actions" }, [
+        dokumentKnapp("Åpne årsrapporten for " + aar, "primary", () => apneArsrapport(aar)),
+        dokumentKnapp("Revisjonsgrunnlag " + aar, "", () => apneRevisjonsgrunnlag(aar))
+      ])
+    });
 
     const importKort = kanOkonomi() ? kort({
       tittel: "Importer historisk regnskap",
@@ -1105,7 +1102,13 @@ export const rapporterView = {
     return el("div", { class: "stack" }, [
       kort({ tittel: "Velg regnskapsår", innhold: felt("Regnskapsår", aarSelect) }),
       kort({ tittel: "Resultatregnskap", beskrivelse: "Inntekter og utgifter per kategori for valgt år.", innhold: resultatHolder }),
-      kort({ tittel: "Last ned rapporter", beskrivelse: "Alle rapporter lastes ned som Excel-filer.", innhold: rapportKnapper }),
+      arsrapportKort,
+      kort({
+        tittel: "Tallgrunnlag i Excel",
+        beskrivelse: "Råtall til videre bearbeiding hos regnskapsfører eller i eget regneark. "
+          + "Selve årsrapporten lager du som PDF i kortet over.",
+        innhold: rapportKnapper
+      }),
       importKort,
       laasKort,
       !kanOkonomi() ? el("div", { class: "note info" }, "Rollen din gir bare lesetilgang til rapporter og eksport.") : null
