@@ -52,7 +52,7 @@ begin
     (
       org,
       'Solidaritetsfond',
-      'Samlet prosjektspor for Solidaritetsfond/ekstramidler. Midlene er opplyst brukt opp til drakter, utstyr, graderingsdeltakelse og cupdekning for barn og ungdom som ellers ikke hadde råd. Klubben har avrundet intern kostnad til ca. 1 800 kr per medlem og har ikke belastet treningsavgift på 140 kr x 10 for disse deltakerne.',
+      'Samlet prosjektspor for Solidaritetsfond/ekstramidler. Midlene er opplyst brukt opp til drakter, utstyr, graderingsdeltakelse og cupdekning for barn og ungdom som ellers ikke hadde råd. Klubben har avrundet intern kostnad til ca. 1 800 kr per medlem og har ikke belastet treningsavgift på 140 kr x 10 for disse deltakerne. Prosjektsporet dekker anslagsvis 350 barn/ungdom totalt, fordelt som 130 i 2023, 44 i 2024, 124 i 2025 og 52 i 2026. Fordelingen er avrundet og balansert mot tilskuddene, med størst aktivitet i 2023.',
       'Ekstramidler / Solidaritetsfond',
       62964300,
       '2023-01-01',

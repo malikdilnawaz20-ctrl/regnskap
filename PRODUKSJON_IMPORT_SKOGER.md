@@ -103,6 +103,8 @@ Kontoer brukt:
 - Solidaritetsfond er opprettet som avsluttet prosjekt med 629 643,00 kr i samlet tilskudd/ekstramidler.
 - Solidaritetsfond er markert som brukt opp i prosjektsporet, uten at det opprettes nye regnskapsutgifter som kan dobbeltføre tidligere Fiken-/bankførte kostnader.
 - Solidaritetsfond gjelder utstyr, drakter, graderingsdeltakelse og cupdekning for barn/ungdom som ikke hadde råd. Intern beregning er avrundet til ca. 1 800 kr per medlem, og treningsavgift 140 kr x 10 er ikke belastet disse deltakerne.
+- Prosjektsporet dekker anslagsvis 350 barn/ungdom totalt: 130 i 2023, 44 i 2024, 124 i 2025 og 52 i 2026.
+- Fordelingen er avrundet og balansert mot tilskuddene, med størst aktivitet i 2023.
 - Dokumentasjon for Solidaritetsfond/ekstramidler er lastet opp i `Tilskudd`: 2023-2024, våren 2025, høsten 2025 og våren 2026.
 
 ## Dokumentarkiv
