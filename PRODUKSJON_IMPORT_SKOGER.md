@@ -100,6 +100,10 @@ Kontoer brukt:
 - Ungdommer i IL 2026 er opprettet/oppdatert som prosjekt med 60 000,00 kr i tilskudd fra Drammen idrettsråd - Aktive Lokalsamfunn.
 - `Tilsagnsbrev Skoger og Fjell karate klubb.pdf` er lastet opp i mappen `Tilskudd`.
 - `Tildelingsbrev Aktive Lokalsamfunn Skoger og Fjell karateklubb.pdf` er lastet opp i mappen `Tilskudd` som dokumentasjon for Åpen Hall 2025.
+- Solidaritetsfond er opprettet som avsluttet prosjekt med 629 643,00 kr i samlet tilskudd/ekstramidler.
+- Solidaritetsfond er markert som brukt opp i prosjektsporet, uten at det opprettes nye regnskapsutgifter som kan dobbeltføre tidligere Fiken-/bankførte kostnader.
+- Solidaritetsfond gjelder utstyr, drakter, graderingsdeltakelse og cupdekning for barn/ungdom som ikke hadde råd. Intern beregning er avrundet til ca. 1 800 kr per medlem, og treningsavgift 140 kr x 10 er ikke belastet disse deltakerne.
+- Dokumentasjon for Solidaritetsfond/ekstramidler er lastet opp i `Tilskudd`: 2023-2024, våren 2025, høsten 2025 og våren 2026.
 
 ## Dokumentarkiv
 

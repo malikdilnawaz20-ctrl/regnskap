@@ -456,7 +456,10 @@ async function hentProsjektStatus() {
 }
 
 function prosjektKort(p, rot) {
-  const pct = p.tilskudd_ore > 0 ? Math.round((p.brukt_ore / p.tilskudd_ore) * 100) : 0;
+  const bruktOpp = /brukt opp/i.test(p.beskrivelse || "");
+  const bruktVisning = bruktOpp && p.tilskudd_ore > 0 ? p.tilskudd_ore : p.brukt_ore;
+  const gjenstaarVisning = bruktOpp ? 0 : p.gjenstaar_ore;
+  const pct = p.tilskudd_ore > 0 ? Math.round((bruktVisning / p.tilskudd_ore) * 100) : 0;
   return kort({
     eyebrow: p.tilskuddsgiver || "Uten tilskuddsgiver",
     tittel: p.navn,
@@ -464,11 +467,14 @@ function prosjektKort(p, rot) {
     innhold: [
       el("dl", { class: "kv" }, [
         el("dt", {}, "Tilskudd"), el("dd", {}, kr0(p.tilskudd_ore) + " kr"),
-        el("dt", {}, "Brukt"), el("dd", {}, kr0(p.brukt_ore) + " kr"),
-        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(p.gjenstaar_ore) + " kr")
+        el("dt", {}, "Brukt"), el("dd", {}, kr0(bruktVisning) + " kr"),
+        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(gjenstaarVisning) + " kr")
       ]),
       kpi({ nokkel: "Brukt av tilskudd", verdi: pct + " %", andel: pct }),
-      pille(statusTekst(p.status), statusFarge(p.status))
+      el("div", { class: "rowline" }, [
+        pille(statusTekst(p.status), statusFarge(p.status)),
+        bruktOpp ? pille("Brukt opp", "green") : null
+      ])
     ],
     hoyre: el("button", { class: "btn sm", onclick: () => visProsjektDetalj(rot, p.id) }, "Åpne")
   });
@@ -555,6 +561,9 @@ async function visProsjektDetalj(rot, id) {
 
     const brukt = (bilag || []).filter(t => t.type === "utgift").reduce((s, t) => s + t.belop_ore, 0);
     const mottatt = (bilag || []).filter(t => t.type === "inntekt").reduce((s, t) => s + t.belop_ore, 0);
+    const bruktOpp = /brukt opp/i.test(p.beskrivelse || "");
+    const bruktVisning = bruktOpp && p.tilskudd_ore > 0 ? p.tilskudd_ore : brukt;
+    const gjenstaarVisning = bruktOpp ? 0 : p.tilskudd_ore - brukt;
 
     const tilbake = el("button", { class: "btn sm", onclick: () => visProsjektListe(rot) }, "← Tilbake til prosjekter");
     const eksportKnapp = el("button", { class: "btn", onclick: () => eksporterProsjekt(p, bilag || []) }, "Eksporter prosjektregnskap");
@@ -566,8 +575,8 @@ async function visProsjektDetalj(rot, id) {
       innhold: el("dl", { class: "kv" }, [
         el("dt", {}, "Tilskudd"), el("dd", {}, kr0(p.tilskudd_ore) + " kr"),
         el("dt", {}, "Mottatt"), el("dd", {}, kr0(mottatt) + " kr"),
-        el("dt", {}, "Brukt"), el("dd", {}, kr0(brukt) + " kr"),
-        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(p.tilskudd_ore - brukt) + " kr"),
+        el("dt", {}, "Brukt"), el("dd", {}, kr0(bruktVisning) + " kr"),
+        el("dt", {}, "Gjenstår"), el("dd", {}, kr0(gjenstaarVisning) + " kr"),
         el("dt", {}, "Rapporteringsfrist"), el("dd", {}, dato(p.rapportfrist))
       ]),
       hoyre: eksportKnapp

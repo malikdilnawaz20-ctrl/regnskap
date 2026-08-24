@@ -48,6 +48,17 @@ begin
       '2026-12-31',
       '2026-12-31',
       'aktiv'
+    ),
+    (
+      org,
+      'Solidaritetsfond',
+      'Samlet prosjektspor for Solidaritetsfond/ekstramidler. Midlene er opplyst brukt opp til drakter, utstyr, graderingsdeltakelse og cupdekning for barn og ungdom som ellers ikke hadde råd. Klubben har avrundet intern kostnad til ca. 1 800 kr per medlem og har ikke belastet treningsavgift på 140 kr x 10 for disse deltakerne.',
+      'Ekstramidler / Solidaritetsfond',
+      62964300,
+      '2023-01-01',
+      '2026-12-31',
+      null,
+      'avsluttet'
     )
   on conflict (organization_id, navn) do update set
     beskrivelse = excluded.beskrivelse,
