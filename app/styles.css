@@ -322,6 +322,68 @@ h3{margin:0;font-size:.95rem;font-weight:640;letter-spacing:-.01em}
 .stat .bar i{display:block;height:100%;border-radius:5px;background:var(--teal)}
 
 /* =====================================================================
+   Status-tavle
+   ===================================================================== */
+
+.status-board{display:grid;grid-template-columns:1.05fr 1.55fr 1fr;gap:16px;align-items:stretch}
+.status-mini{display:grid;grid-template-columns:1fr;gap:16px}
+.status-tile{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
+  min-height:94px;padding:16px 17px;text-align:left;display:flex;align-items:center;gap:13px;
+  color:var(--ink);box-shadow:var(--skygge-lav);cursor:pointer;transition:border-color .14s,box-shadow .14s,transform .1s
+}
+.status-tile:hover{border-color:var(--line-sterk);box-shadow:var(--skygge);transform:translateY(-1px)}
+.status-tile .tile-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none}
+.status-tile .tile-icon svg{width:17px;height:17px;stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.status-tile.gold .tile-icon{background:var(--gold-soft);color:var(--gold)}
+.status-tile.blue .tile-icon{background:var(--blue-soft);color:var(--blue)}
+.status-tile.green .tile-icon{background:var(--green-soft);color:var(--green)}
+.status-tile .tile-text{min-width:0;display:grid;gap:3px}
+.status-tile b{font-size:.88rem;font-weight:640}
+.status-tile strong{font-size:1.75rem;line-height:1;font-weight:700;font-variant-numeric:tabular-nums}
+.status-tile small{font-size:.78rem;color:var(--muted)}
+.status-main .card-body{height:100%}
+.status-chart{height:100%;min-height:250px;display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:28px;align-items:center}
+.donut{
+  width:min(180px,100%);aspect-ratio:1;border-radius:50%;position:relative;justify-self:center;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)
+}
+.donut span{position:absolute;inset:27px;border-radius:50%;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
+.legend{display:grid;gap:12px;min-width:0}
+.legend-row{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;font-size:.87rem}
+.legend-row span{color:var(--muted);display:flex;align-items:center;gap:8px}
+.legend-row span::before{content:"";width:18px;height:10px;border-radius:999px;background:currentColor;flex:none}
+.legend-row.teal span::before{color:var(--teal)}
+.legend-row.gold span::before{color:var(--gold)}
+.legend-row.blue span::before{color:var(--blue)}
+.legend-row b{font-variant-numeric:tabular-nums}
+.sumline{border-top:1px solid var(--line);margin-top:5px;padding-top:12px;display:flex;justify-content:space-between;gap:16px;font-size:.9rem}
+.sumline span{color:var(--muted)}
+.sumline .pos{color:var(--green)} .sumline .neg{color:var(--red)}
+.updated{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.79rem;margin-top:3px}
+.updated svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.deadline-list{display:grid;gap:8px}
+.deadline{
+  width:100%;border:0;background:var(--hover);border-radius:var(--r-sm);padding:10px 10px 10px 0;
+  display:grid;grid-template-columns:5px 1fr 18px;gap:10px;text-align:left;align-items:center;color:var(--ink);
+  cursor:pointer;transition:background .12s,transform .1s
+}
+.deadline:hover{background:var(--teal-soft);transform:translateY(-1px)}
+.deadline .stripe{height:100%;min-height:42px;border-radius:999px;background:var(--muted)}
+.deadline.teal .stripe{background:var(--teal)}
+.deadline.gold .stripe{background:var(--gold)}
+.deadline.blue .stripe{background:var(--blue)}
+.deadline.green .stripe{background:var(--green)}
+.deadline.neutral .stripe{background:var(--muted)}
+.deadline-text{display:grid;gap:3px;min-width:0}
+.deadline-text b{font-size:.86rem;font-weight:650}
+.deadline-text small{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deadline .more{color:var(--muted)}
+.deadline .more svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:1180px){.status-board{grid-template-columns:1fr 1fr}.status-side{grid-column:1 / -1}.status-mini{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.status-board,.status-mini,.status-chart{grid-template-columns:1fr}.status-chart{gap:18px}.donut{width:min(170px,70vw)}.deadline-text small{white-space:normal}}
+
+/* =====================================================================
    Trenger oppmerksomhet
    ===================================================================== */
 

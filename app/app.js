@@ -499,6 +499,8 @@ async function forside() {
     farge: "blue", ikon: "info", klikk: () => gaTil("medlemmer")
   }));
 
+  boks.append(statusTavle({ okonomi, medlemsTall, prosjekter, attest, rader }));
+
   boks.append(el("div", { class: "split" }, [
     kort({
       tittel: "Trenger oppmerksomhet",
@@ -532,6 +534,90 @@ async function forside() {
   ]));
 
   return boks;
+}
+
+function statusTavle({ okonomi, medlemsTall, prosjekter, attest, rader }) {
+  const inntekt = Math.max(0, okonomi.inntekt_ore || 0);
+  const utgift = Math.max(0, okonomi.utgift_ore || 0);
+  const utestaaende = Math.max(0, okonomi.ubetalt_ore || 0);
+  const total = Math.max(1, inntekt + utgift + utestaaende);
+  const p1 = Math.round((inntekt / total) * 100);
+  const p2 = Math.min(100, p1 + Math.round((utgift / total) * 100));
+  const donut = `conic-gradient(var(--teal) 0 ${p1}%, var(--gold) ${p1}% ${p2}%, var(--blue-soft) ${p2}% 100%)`;
+  const prosjektAktive = prosjekter.filter(p => p.status === "aktiv").length;
+  const fristProsjekter = prosjekter.filter(p => {
+    if (!p.rapportfrist) return false;
+    const dager = Math.round((new Date(p.rapportfrist) - new Date()) / 864e5);
+    return dager <= 30;
+  }).length;
+  const oppmerksomhet = rader.length;
+
+  return el("section", { class: "status-board" }, [
+    el("div", { class: "status-mini" }, [
+      statusTile({ tittel: "Bilag uten vedlegg", verdi: okonomi.manglerVedlegg || 0, under: "Kontrollspor", ikon: "kvittering", farge: (okonomi.manglerVedlegg || 0) ? "gold" : "green", klikk: () => gaTil("okonomi") }),
+      statusTile({ tittel: "Venter på godkjenning", verdi: attest.tilAttestering || 0, under: "Utbetaling", ikon: "ok", farge: (attest.tilAttestering || 0) ? "blue" : "green", klikk: () => gaTil("attestering") })
+    ]),
+    kort({
+      klasse: "status-main",
+      tittel: "Regnskapsoversikt",
+      hoyre: knapp("Rapporter", { klasse: "stille sm", ikon: "rapport", ved: () => gaTil("rapporter") }),
+      innhold: el("div", { class: "status-chart" }, [
+        el("div", { class: "donut", style: `background:${donut}` }, el("span")),
+        el("div", { class: "legend" }, [
+          legend("Inntekter", kr0(inntekt) + " kr", "teal"),
+          legend("Utgifter", kr0(utgift) + " kr", "gold"),
+          legend("Utestående krav", kr0(utestaaende) + " kr", "blue"),
+          el("div", { class: "sumline" }, [
+            el("span", {}, "Resultat i år"),
+            el("b", { class: (okonomi.resultat_ore || 0) >= 0 ? "pos" : "neg" },
+              ((okonomi.resultat_ore || 0) >= 0 ? "+" : "-") + kr0(Math.abs(okonomi.resultat_ore || 0)) + " kr")
+          ]),
+          el("div", { class: "updated" }, [el("span", { html: svg("info") }), "Sist oppdatert " + tidspunkt(new Date())])
+        ])
+      ])
+    }),
+    kort({
+      klasse: "status-side",
+      tittel: "Frister og kontroll",
+      hoyre: merke(String(oppmerksomhet), oppmerksomhet ? "gold" : "green"),
+      innhold: el("div", { class: "deadline-list" }, [
+        deadline("Årsregnskap 2025", "Mal og sammenligning fra 2025-regnskap", "blue", () => gaTil("rapporter")),
+        deadline("Bankkontroll", "Saldo skal stemme med bank", "teal", () => gaTil("okonomi")),
+        deadline("Prosjektfrister", fristProsjekter ? antall(fristProsjekter, "frist krever oppfølging", "frister krever oppfølging") : "Ingen frister neste 30 dager", fristProsjekter ? "gold" : "green", () => gaTil("prosjekter")),
+        deadline("Medlemmer", `${medlemsTall.aktive || 0} aktive · ${medlemsTall.ubetalte || 0} ubetalte krav`, (medlemsTall.ubetalte || 0) ? "gold" : "green", () => gaTil("medlemmer")),
+        deadline("Prosjekter", `${prosjektAktive} aktive prosjekt`, prosjektAktive ? "teal" : "neutral", () => gaTil("prosjekter"))
+      ])
+    })
+  ]);
+}
+
+function statusTile({ tittel, verdi, under, ikon: ikonNavn, farge, klikk }) {
+  return el("button", { class: "status-tile " + farge, onclick: klikk }, [
+    el("span", { class: "tile-icon", html: svg(ikonNavn) }),
+    el("span", { class: "tile-text" }, [
+      el("b", {}, tittel),
+      el("strong", {}, String(verdi)),
+      el("small", {}, under)
+    ])
+  ]);
+}
+
+function legend(label, value, color) {
+  return el("div", { class: "legend-row " + color }, [
+    el("span", {}, label),
+    el("b", {}, value)
+  ]);
+}
+
+function deadline(tittel, under, farge, klikk) {
+  return el("button", { class: "deadline " + farge, onclick: klikk }, [
+    el("span", { class: "stripe" }),
+    el("span", { class: "deadline-text" }, [
+      el("b", {}, tittel),
+      el("small", {}, under)
+    ]),
+    el("span", { class: "more", html: svg("pil") })
+  ]);
 }
 
 async function hentMedlemsTall() {
