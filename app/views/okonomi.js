@@ -12,6 +12,7 @@ import { S, kanOkonomi, velgFra, settInn, paaNytt, aarNaa, erAdmin } from "../st
 
 const BANK_KONTROLL_SALDO_ORE = 101_700;
 const HISTORISK_UTBETALING_GODKJENT = "Godkjent av Dilara/Denis";
+const UTBETALING_2025_GODKJENT = "Godkjent av Denis/Malik";
 
 /* =====================================================================
    Felles hjelpere
@@ -59,7 +60,10 @@ function statusFarge(s) {
 
 function godkjenningForTransaksjon(t) {
   const aar = t.regnskapsaar || Number(String(t.dato || "").slice(0, 4));
-  return t.type === "utgift" && aar >= 2020 && aar <= 2024 ? HISTORISK_UTBETALING_GODKJENT : "";
+  if (t.type !== "utgift") return "";
+  if (aar >= 2020 && aar <= 2024) return HISTORISK_UTBETALING_GODKJENT;
+  if (aar === 2025) return UTBETALING_2025_GODKJENT;
+  return "";
 }
 
 /* =====================================================================

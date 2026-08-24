@@ -89,3 +89,5 @@ Kontoer brukt:
 - Årsregnskap 2025 ligger som mal/arbeidsgrunnlag i `/Users/dilnawazmalik/Documents/innsending_NIF/innsending_klar/5_Arsregnskap_2025.pdf`
 - Historiske utbetalinger 2020-2024 vises i transaksjonslisten med godkjenningsspor: `Godkjent av Dilara/Denis`.
 - Antall utbetalingsrader som omfattes: 56.
+- Utbetalinger i 2025 vises med godkjenningsspor: `Godkjent av Denis/Malik`.
+- Antall 2025-utbetalingsrader som omfattes: 101.
