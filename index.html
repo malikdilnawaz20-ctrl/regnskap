@@ -10,6 +10,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/ikoner/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Saksflyt">
 <link rel="stylesheet" href="./app/styles.css">
 <style>
   body{display:flex;flex-direction:column;min-height:100vh}
@@ -61,6 +66,29 @@
     color:var(--muted);font-size:.83rem;width:min(1080px,100%);margin-inline:auto
   }
   .portal-bunn a{color:var(--muted)}
+
+  .app-band{
+    width:min(1080px,100%);margin:0 auto;padding:0 24px 52px
+  }
+  .app-band .inni{
+    border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);
+    padding:24px 26px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+    box-shadow:var(--skygge-lav)
+  }
+  .app-band .merkeikon{
+    width:56px;height:56px;border-radius:15px;background:var(--teal);color:#fff;
+    display:grid;place-items:center;font-size:1.5rem;font-weight:700;flex:none;
+    letter-spacing:-.03em
+  }
+  .app-band .tekst{flex:1;min-width:240px}
+  .app-band h2{font-size:1.12rem;font-weight:650;letter-spacing:-.018em;margin:0 0 4px}
+  .app-band p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.6;max-width:56ch}
+  .app-band ol{
+    margin:10px 0 0;padding-left:20px;color:var(--muted);font-size:.86rem;
+    display:flex;flex-direction:column;gap:3px
+  }
+  .app-band .handling{flex:none}
+  #appStatus{font-size:.86rem;color:var(--green);font-weight:600}
 
   .integrasjon{
     border-top:1px solid var(--line);background:var(--panel);
@@ -157,6 +185,21 @@
 
 </main>
 
+<section class="app-band">
+  <div class="inni">
+    <span class="merkeikon">S</span>
+    <div class="tekst">
+      <h2>Ta klubben med deg</h2>
+      <p id="appTekst">Legg Saksflyt på hjem-skjermen, så åpner den seg som en app — uten adressefelt, med eget ikon. Praktisk når du skal fotografere en kvittering i hallen eller slå opp et medlem på trening.</p>
+      <ol id="appSteg" hidden></ol>
+    </div>
+    <div class="handling">
+      <button class="btn primary" id="appKnapp" hidden>Legg til på hjem-skjermen</button>
+      <span id="appStatus" hidden>Appen er allerede installert</span>
+    </div>
+  </div>
+</section>
+
 <section class="integrasjon">
   <div class="inni">
     <div class="topp">
@@ -198,6 +241,54 @@
   <span>Saksflyt</span>
   <span>Dataene tilhører organisasjonen. Last dem ned når du vil.</span>
 </footer>
+
+<script src="/installer.js"></script>
+<script>
+  // App på hjem-skjermen
+  (function () {
+    const S = window.Saksflyt;
+    if (!S) return;
+    S.settOppArbeider();
+
+    const baand  = document.querySelector(".app-band");
+    const knapp  = document.getElementById("appKnapp");
+    const status = document.getElementById("appStatus");
+    const steg   = document.getElementById("appSteg");
+    const tekst  = document.getElementById("appTekst");
+
+    function tegn() {
+      const t = S.tilstand();
+      knapp.hidden = t !== "kan-spørre";
+      status.hidden = t !== "installert";
+      steg.hidden = t !== "ios-manuelt";
+
+      if (t === "installert") {
+        tekst.textContent = "Saksflyt ligger på hjem-skjermen din. Åpne den derfra, så slipper du adressefeltet.";
+      } else if (t === "ios-manuelt") {
+        tekst.textContent = "På iPhone og iPad legger du den til selv. Det tar tre trykk:";
+        steg.innerHTML = "";
+        S.IOS_STEG.forEach(function (l) {
+          const li = document.createElement("li");
+          li.textContent = l;
+          steg.appendChild(li);
+        });
+      } else if (t === "ikke-mulig") {
+        baand.hidden = true;
+      }
+    }
+
+    knapp.addEventListener("click", async function () {
+      knapp.disabled = true;
+      const ja = await S.installer();
+      knapp.disabled = false;
+      if (ja) tegn();
+    });
+
+    window.addEventListener("saksflyt:kan-installeres", tegn);
+    window.addEventListener("saksflyt:installert", tegn);
+    tegn();
+  })();
+</script>
 
 <script>
   // Husk hvilket produkt du sist brukte, så slipper du å velge hver gang.

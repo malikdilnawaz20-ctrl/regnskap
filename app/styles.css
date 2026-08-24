@@ -104,6 +104,9 @@
    ===================================================================== */
 
 *{box-sizing:border-box}
+/* En klasse med egen display slår [hidden] fra nettleseren. Vi vil at
+   hidden alltid skal bety skjult. */
+[hidden]{display:none!important}
 html,body{height:100%}
 body{
   margin:0;background:var(--paper);color:var(--ink);

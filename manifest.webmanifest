@@ -1,0 +1,25 @@
+{
+  "name": "Saksflyt",
+  "short_name": "Saksflyt",
+  "description": "Medlemmer, økonomi og prosjekter for foreninger og idrettslag.",
+  "lang": "no",
+  "dir": "ltr",
+  "start_url": "/app/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F6F8FA",
+  "theme_color": "#073F43",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    { "src": "/ikoner/ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/ikoner/ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/ikoner/maskerbar-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/ikoner/maskerbar-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Registrer utgift", "url": "/app/#/okonomi", "description": "Legg inn en utgift med kvittering" },
+    { "name": "Medlemmer", "url": "/app/#/medlemmer", "description": "Søk opp et medlem" },
+    { "name": "Rapporter", "url": "/app/#/rapporter", "description": "Åpne årsregnskap og prosjektregnskap" }
+  ]
+}

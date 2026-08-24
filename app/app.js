@@ -67,6 +67,8 @@ let innstApen = false;
 const rot = document.getElementById("rot");
 
 settOppTema();
+window.Saksflyt?.settOppArbeider();
+window.addEventListener("saksflyt:kan-installeres", () => tegn());
 window.addEventListener("sf:tegn", () => tegn());
 window.addEventListener("hashchange", () => { lesRute(); tegn(); });
 
@@ -324,6 +326,8 @@ function byggSidepanel() {
   }, [el("span", { html: svg("innstilling") }), "Innstillinger"]));
   if (innstApen) bunn.append(el("div", { class: "sb-sub" }, INNST_UNDER.map(u => punkt(u))));
   bunn.append(punkt("hjelp"));
+  const appPunkt = installerPunkt();
+  if (appPunkt) bunn.append(appPunkt);
   bunn.append(el("button", { class: "sb-profil", onclick: () => gaTil("profil") }, [
     el("span", { class: "avatar" }, initialer(S.bruker.fornavn, S.bruker.etternavn) || S.bruker.epost[0].toUpperCase()),
     el("span", {}, [
@@ -333,6 +337,42 @@ function byggSidepanel() {
   ]));
   nav.append(bunn);
   return nav;
+}
+
+/** Vises bare når appen faktisk kan legges på hjem-skjermen. */
+function installerPunkt() {
+  const S2 = window.Saksflyt;
+  if (!S2) return null;
+  const t = S2.tilstand();
+  if (t === "installert" || t === "ikke-mulig") return null;
+  return el("button", {
+    class: "sb-item",
+    onclick: () => t === "kan-spørre" ? installerNaa() : visIosSteg()
+  }, [el("span", { html: svg("last") }), "Legg til som app"]);
+}
+
+async function installerNaa() {
+  const ja = await window.Saksflyt.installer();
+  if (ja) { toast("Lagt til", "Saksflyt ligger nå på hjem-skjermen din."); tegn(); }
+}
+
+function visIosSteg() {
+  const S2 = window.Saksflyt;
+  skuff({
+    tittel: "Legg Saksflyt på hjem-skjermen",
+    undertittel: "På iPhone og iPad gjør du det selv. Det tar tre trykk.",
+    innhold: el("div", { class: "stack" }, [
+      el("div", { class: "oppm" }, S2.IOS_STEG.map((linje, i) =>
+        el("div", { class: "oppm-rad", style: "cursor:default" }, [
+          el("span", { class: "merke blue" }, String(i + 1)),
+          el("span", { class: "tekst" }, el("b", {}, linje))
+        ]))),
+      el("div", { class: "note info" }, [
+        el("span", { html: svg("info") }),
+        el("div", {}, "Etterpå åpner Saksflyt seg uten adressefelt, med eget ikon — som en vanlig app.")
+      ])
+    ])
+  });
 }
 
 function byggMobilnav() {
