@@ -1,6 +1,6 @@
 # Importkontroll - Skoger og Fjell
 
-Generert: 2026-08-24T10:59:24
+Generert: 2026-08-24T11:37:32
 
 ## Kilder
 
@@ -87,6 +87,7 @@ Kontoer brukt:
 - Bankkontrollsaldo oppgitt: 1 017,00 kr
 - Årsregnskap 2024 ligger som arbeidsgrunnlag i `/Users/dilnawazmalik/Documents/innsending_NIF/innsending_klar/4_Arsregnskap_2024.pdf`
 - Årsregnskap 2025 ligger som mal/arbeidsgrunnlag i `/Users/dilnawazmalik/Documents/innsending_NIF/innsending_klar/5_Arsregnskap_2025.pdf`
+- Utbetalingstekster er forenklet for idrettslaget: de viser at utbetaling er registrert, kategori og måned/år, men ikke bankmeldinger, filnavn eller unødige detaljer.
 - Historiske utbetalinger 2020-2024 vises i transaksjonslisten med godkjenningsspor: `Godkjent av Dilara/Denis`.
 - Antall utbetalingsrader som omfattes: 56.
 - Utbetalinger i 2025 vises med godkjenningsspor: `Godkjent av Denis/Malik`.

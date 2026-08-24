@@ -40,6 +40,10 @@ ORGNR = "912484335"
 ORG_NAME = "Skoger og Fjell kampsportklubb"
 MEMBERSHIP_FEE_NAME = "Medlemskontingent 2026"
 MEMBERSHIP_FEE_ORE = 45_000
+MONTH_NAMES = [
+    "januar", "februar", "mars", "april", "mai", "juni",
+    "juli", "august", "september", "oktober", "november", "desember",
+]
 
 
 ACCOUNT_CATEGORY = {
@@ -218,6 +222,22 @@ def split_name(raw: str):
     return " ".join(parts[:-1]), parts[-1]
 
 
+def month_year(date_text: str) -> str:
+    date = dt.date.fromisoformat(str(date_text)[:10])
+    return f"{MONTH_NAMES[date.month - 1]} {date.year}"
+
+
+def public_transaction_description(tx_type: str, category_name: str, date_text: str) -> str:
+    if tx_type != "utgift":
+        return None
+    category = (category_name or "drift").strip()
+    if category.lower().startswith("historisk bankspor"):
+        category = "historisk bankspor"
+    else:
+        category = category[:1].lower() + category[1:]
+    return f"Utbetaling registrert i regnskapet - {category}, {month_year(date_text)}"
+
+
 def load_fiken(path: Path):
     with path.open(encoding="utf-8") as handle:
         rows = json.load(handle)
@@ -243,7 +263,8 @@ def load_fiken(path: Path):
             "bilagsnummer": f"FIKEN-{row['year']}-{idx:04d}",
             "dato": row["date"],
             "type": direction,
-            "beskrivelse": row.get("description") or row.get("note") or f"Fiken {row['date']}",
+            "beskrivelse": public_transaction_description(direction, cat_name, row["date"])
+            or (row.get("description") or row.get("note") or f"Fiken {row['date']}"),
             "belop_ore": amount,
             "konto_nummer": counterpart,
             "category_name": cat_name,
@@ -401,7 +422,7 @@ def generate_sql(fiken_rows, members, bank_statements):
                 sql(f"BANK-{stmt['year']}-{stmt['month']:02d}"),
                 sql(stmt["end_date"]),
                 sql(stmt["type"] if stmt["type"] != "overforing" else "utgift"),
-                sql(f"[Bankspor {stmt['external_id']}] {stmt['description']}"),
+                sql(public_transaction_description(stmt["type"], "Historisk bankspor", stmt["end_date"]) or "Bankbevegelse registrert fra kontoutskrift"),
                 sql(stmt["amount_ore"]),
                 sql(3900 if stmt["type"] == "inntekt" else 7790),
             ])
@@ -423,7 +444,7 @@ def generate_sql(fiken_rows, members, bank_statements):
                 sql(row["bilagsnummer"]),
                 sql(row["dato"]),
                 sql(row["type"]),
-                sql(f"[Fiken {row['external_id']}] {row['beskrivelse']}"),
+                sql(row["beskrivelse"]),
                 sql(row["belop_ore"]),
                 sql(row["konto_nummer"]),
             ])

@@ -30,6 +30,7 @@ from generate_skoger_import_sql import (
     load_bank_statements,
     load_fiken,
     load_members,
+    public_transaction_description,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -218,7 +219,8 @@ def main():
             "bilagsnummer": bilag,
             "dato": stmt["end_date"],
             "type": direction,
-            "beskrivelse": f"[Bankspor {stmt['external_id']}] {stmt['description']}",
+            "beskrivelse": public_transaction_description(stmt["type"], "Historisk bankspor", stmt["end_date"])
+            or "Bankbevegelse registrert fra kontoutskrift",
             "belop_ore": stmt["amount_ore"],
             "konto_nummer": 3900 if direction == "inntekt" else 7790,
             "category_id": category_ids[cat_key],
@@ -239,7 +241,7 @@ def main():
             "bilagsnummer": row0["bilagsnummer"],
             "dato": row0["dato"],
             "type": row0["type"],
-            "beskrivelse": f"[Fiken {row0['external_id']}] {row0['beskrivelse']}",
+            "beskrivelse": row0["beskrivelse"],
             "belop_ore": row0["belop_ore"],
             "konto_nummer": row0["konto_nummer"],
             "category_id": category_ids[cat_key],
