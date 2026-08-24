@@ -10,6 +10,11 @@
   2. `supabase/migrations/0002_attestering.sql`
   3. `supabase/seed_klubb.sql`
 - Storage-buckets `bilag` og `dokumenter` er opprettet med organisasjonsstyrte policies.
+- Fem første Auth-brukere er opprettet og bekreftet:
+  `malik@kampsportlaget.com`, `carlos@kampsportlaget.com`, `denis@kampsportlaget.com`,
+  `dilara@kampsportlaget.com` og `afrim@kampsportlaget.com`.
+- Dilara og Afrim er lagt inn i organisasjonen som `medlem`.
+- Produksjonsinnlogging er testet for Malik, Dilara og Afrim.
 - GitHub-repoet `malikdilnawaz20-ctrl/regnskap` er opprettet og publisert med GitHub Pages.
 - `sakflyt.no` svarer fra GitHub Pages.
 
@@ -26,10 +31,9 @@ Det gamle Supabase-prosjektet `https://eegxkylchxnwklpotqxc.supabase.co` brukes 
 
 ## Gjenstår
 
-1. Opprett de tre første brukerne i Supabase Auth.
-2. Test innlogging lokalt på `http://127.0.0.1:8090/app/`.
-3. Kontroller appen på `https://sakflyt.no/app/`.
-4. Vurder om åpen e-postregistrering skal slås av etter at første brukere er opprettet.
+1. Vurder om åpen e-postregistrering skal slås av etter at første brukere er opprettet.
+2. Bytt midlertidige passord ved første innlogging.
+3. Legg inn resten av medlemsregisteret, aktiviteter og grupper.
 
 ## Lokal test
 
