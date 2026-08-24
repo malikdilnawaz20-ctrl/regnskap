@@ -81,3 +81,11 @@ Kontoer brukt:
 - Styreweb-medlemmer: 253
 - Betalte medlemskrav: 12
 - Dokumentspor for kontoutskrifter: 32
+
+## Kontroll og årsregnskap
+
+- Bankkontrollsaldo oppgitt: 1 017,00 kr
+- Årsregnskap 2024 ligger som arbeidsgrunnlag i `/Users/dilnawazmalik/Documents/innsending_NIF/innsending_klar/4_Arsregnskap_2024.pdf`
+- Årsregnskap 2025 ligger som mal/arbeidsgrunnlag i `/Users/dilnawazmalik/Documents/innsending_NIF/innsending_klar/5_Arsregnskap_2025.pdf`
+- Historiske utbetalinger 2020-2024 vises i transaksjonslisten med godkjenningsspor: `Godkjent av Dilara/Denis`.
+- Antall utbetalingsrader som omfattes: 56.

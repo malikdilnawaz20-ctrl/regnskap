@@ -10,6 +10,9 @@ import {
 } from "../lib.js";
 import { S, kanOkonomi, velgFra, settInn, paaNytt, aarNaa, erAdmin } from "../store.js";
 
+const BANK_KONTROLL_SALDO_ORE = 101_700;
+const HISTORISK_UTBETALING_GODKJENT = "Godkjent av Dilara/Denis";
+
 /* =====================================================================
    Felles hjelpere
    ===================================================================== */
@@ -52,6 +55,11 @@ function statusTekst(s) {
 }
 function statusFarge(s) {
   return { planlegges: "neutral", aktiv: "blue", avsluttet: "neutral", rapportert: "green" }[s] || "neutral";
+}
+
+function godkjenningForTransaksjon(t) {
+  const aar = t.regnskapsaar || Number(String(t.dato || "").slice(0, 4));
+  return t.type === "utgift" && aar >= 2020 && aar <= 2024 ? HISTORISK_UTBETALING_GODKJENT : "";
 }
 
 /* =====================================================================
@@ -112,7 +120,7 @@ export async function hentOkonomiTall() {
 
 async function hentTransaksjoner(filter) {
   let sp = velgFra("transactions",
-    "id,bilagsnummer,dato,type,beskrivelse,belop_ore,motpart,category_id,project_id,categories(navn),projects(navn)")
+    "id,bilagsnummer,dato,type,beskrivelse,belop_ore,motpart,category_id,project_id,regnskapsaar,categories(navn),projects(navn)")
     .eq("regnskapsaar", filter.aar)
     .order("dato", { ascending: false })
     .order("bilagsnummer", { ascending: false });
@@ -138,7 +146,8 @@ function txnRad(t, harVedlegg) {
     el("td", {}, t.categories?.navn || "—"),
     el("td", {}, t.projects?.navn || "—"),
     el("td", { class: "num" }, (t.type === "utgift" ? "− " : "") + kr(t.belop_ore)),
-    el("td", {}, harVedlegg.has(t.id) ? pille("Vedlagt", "green") : pille("Mangler vedlegg", "gold"))
+    el("td", {}, harVedlegg.has(t.id) ? pille("Vedlagt", "green") : pille("Mangler vedlegg", "gold")),
+    el("td", {}, godkjenningForTransaksjon(t) ? pille(godkjenningForTransaksjon(t), "green") : "—")
   ]);
 }
 
@@ -208,8 +217,9 @@ export const okonomiView = {
       hentOkonomiTall(), hentAlleKategorier(), hentProsjekter()
     ]);
 
-    const statsRad = el("div", { class: "grid g4" }, [
+    const statsRad = el("div", { class: "grid g5" }, [
       kpi({ ikon: "okonomi", nokkel: "Saldo", verdi: kr(tall.saldo_ore) + " kr" }),
+      kpi({ ikon: "betaling", nokkel: "Bank kontroll", verdi: kr(BANK_KONTROLL_SALDO_ORE) + " kr", under: "Faktisk saldo oppgitt" }),
       kpi({ ikon: "opp", nokkel: "Inntekter hittil i år", verdi: kr(tall.inntekt_ore) + " kr" }),
       kpi({ ikon: "betaling", nokkel: "Utgifter hittil i år", verdi: kr(tall.utgift_ore) + " kr" }),
       kpi({ ikon: "rapport", nokkel: "Resultat", verdi: kr(tall.resultat_ore) + " kr", farge: tall.resultat_ore >= 0 ? "pos" : "neg" })
@@ -246,7 +256,7 @@ export const okonomiView = {
         const rader = await hentTransaksjoner(filter);
         const harVedlegg = await hentVedleggsSet(rader.map(r => r.id));
         tabellHolder.replaceChildren(tabell(
-          [{ t: "Bilag" }, { t: "Dato" }, { t: "Beskrivelse" }, { t: "Kategori" }, { t: "Prosjekt" }, { t: "Beløp", num: true }, { t: "Vedlegg" }],
+          [{ t: "Bilag" }, { t: "Dato" }, { t: "Beskrivelse" }, { t: "Kategori" }, { t: "Prosjekt" }, { t: "Beløp", num: true }, { t: "Vedlegg" }, { t: "Godkjenning" }],
           rader.map(t => txnRad(t, harVedlegg)),
           "Ingen transaksjoner funnet for dette filteret."
         ));
@@ -286,7 +296,8 @@ export const okonomiView = {
               "Bilagsnr": t.bilagsnummer, "Dato": datoKort(t.dato), "Type": t.type === "utgift" ? "Utgift" : "Inntekt",
               "Beskrivelse": t.beskrivelse, "Motpart": t.motpart || "", "Kategori": t.categories?.navn || "",
               "Prosjekt": t.projects?.navn || "",
-              "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1)
+              "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1),
+              "Godkjenning": godkjenningForTransaksjon(t)
             }))
           });
           toast("Eksportert", "Regnearket er lastet ned.");
@@ -694,7 +705,7 @@ async function eksporterBalanse() {
 }
 
 async function eksporterHovedbok(aar) {
-  const { data, error } = await velgFra("transactions", "bilagsnummer,dato,type,beskrivelse,belop_ore,konto_nummer,categories(navn)")
+  const { data, error } = await velgFra("transactions", "bilagsnummer,dato,type,beskrivelse,belop_ore,konto_nummer,regnskapsaar,categories(navn)")
     .eq("regnskapsaar", aar).order("konto_nummer").order("dato");
   if (error) throw error;
   const rader = (data || []).map(t => ({
@@ -703,20 +714,22 @@ async function eksporterHovedbok(aar) {
     "Bilagsnr": t.bilagsnummer,
     "Dato": datoKort(t.dato),
     "Beskrivelse": t.beskrivelse,
-    "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1)
+    "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)) * (t.type === "utgift" ? -1 : 1),
+    "Godkjenning": godkjenningForTransaksjon(t)
   }));
   await eksporterExcel(`hovedbok-${aar}.xlsx`, { Hovedbok: rader });
 }
 
 async function eksporterBilagsjournal(aar) {
   const { data, error } = await velgFra("transactions",
-    "bilagsnummer,dato,type,beskrivelse,motpart,belop_ore,categories(navn),projects(navn)")
+    "bilagsnummer,dato,type,beskrivelse,motpart,belop_ore,regnskapsaar,categories(navn),projects(navn)")
     .eq("regnskapsaar", aar).order("bilagsnummer");
   if (error) throw error;
   const rader = (data || []).map(t => ({
     "Bilagsnr": t.bilagsnummer, "Dato": datoKort(t.dato), "Type": t.type === "utgift" ? "Utgift" : "Inntekt",
     "Beskrivelse": t.beskrivelse, "Motpart": t.motpart || "", "Kategori": t.categories?.navn || "",
-    "Prosjekt": t.projects?.navn || "", "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2))
+    "Prosjekt": t.projects?.navn || "", "Beløp (kr)": Number((t.belop_ore / 100).toFixed(2)),
+    "Godkjenning": godkjenningForTransaksjon(t)
   }));
   await eksporterExcel(`bilagsjournal-${aar}.xlsx`, { Bilagsjournal: rader });
 }
