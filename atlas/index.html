@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Saksflyt Prosjekter — Atlas</title>
+<meta name="description" content="Enkel prosjektmodul for Saksflyt: idéer, oppgaver, fremdrift og økonomi, med delt gjestetilgang.">
+<meta name="theme-color" content="#073F43">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23087F7A'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>A</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../app/styles.css">
+<link rel="stylesheet" href="../app/atlas.css">
+</head>
+<body>
+<header class="atlas-top">
+  <button type="button" class="atlas-brand" data-action="go-home">
+    <span class="sb-logo">A</span>
+    <span><b>Atlas</b><span class="kicker">Del av Saksflyt · Prosjekter</span></span>
+  </button>
+  <div class="rowline">
+    <button type="button" class="btn stille icon" data-action="open-settings" title="Team og tilgang" aria-label="Team og tilgang">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+    </button>
+    <div class="atlas-user">
+      <button type="button" class="atlas-chip" id="userChip" data-action="toggle-user-menu"></button>
+      <div class="atlas-user-menu" id="userMenu" hidden></div>
+    </div>
+  </div>
+</header>
+
+<main class="main" id="main" style="max-width:1180px;margin:0 auto;padding-top:6px"></main>
+
+<div class="overlay" id="settingsOverlay" hidden>
+  <div class="modal" id="settingsModal"></div>
+</div>
+
+<div class="toast" id="toast"><span class="k">Utført</span><span id="toastMsg"></span></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var PEOPLE = {
+    dilnawaz:{ name:"Dilnawaz Malik", role:"Eier", initials:"DM", tone:"teal" },
+    erik:{ name:"Erik Solberg", role:"Prosjektleder", initials:"ES", tone:"gold" },
+    maria:{ name:"Maria Haugen", role:"Økonomi", initials:"MH", tone:"green" },
+    thomas:{ name:"Thomas Berg", role:"Utvikler", initials:"TB", tone:"red" },
+    sara:{ name:"Sara Nilsen", role:"Fagansvarlig sykepleie", initials:"SN", tone:"blue" },
+    nora:{ name:"Nora Kaldheim", role:"Marked", initials:"NK", tone:"gold" },
+    vidar:{ name:"Vidar Amundsen", role:"Tidligere partner (kjøpt ut)", initials:"VA", tone:"neutral" },
+    gjest:{ name:"Gjestebruker", role:"Delt gjestetilgang", initials:"GB", tone:"neutral" }
+  };
+  var TEAM_ORDER = ["dilnawaz","erik","maria","thomas","sara","nora"];
+  var TONE_VARS = { teal:["--teal-soft","--teal"], gold:["--gold-soft","--gold"], green:["--green-soft","--green"], red:["--red-soft","--red"], blue:["--blue-soft","--blue"], neutral:["--hover","--muted"] };
+
+  var idCounter = 5000;
+  function nextId(){ idCounter += 1; return idCounter; }
+  function kr(n){ return n.toLocaleString("nb-NO") + " kr"; }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function avatar(personKey, size){
+    var p = PEOPLE[personKey];
+    var v = TONE_VARS[p.tone];
+    return '<span class="avatar ' + size + '" style="background:var(' + v[0] + ');color:var(' + v[1] + ')" title="' + esc(p.name) + '">' + p.initials + "</span>";
+  }
+
+  var PROJECTS = {
+    saksflyt:{
+      id:"saksflyt", name:"Saksflyt Regnskap", tone:"teal",
+      category:"SaaS · Regnskap og foreninger",
+      status:"Pågår",
+      summary:"Regnskapsmotor og saksflyt for foreninger og idrettslag – med automatisk årsrapport-innsamling for tilskuddsgivere.",
+      wide:true,
+      goal:1200000,
+      initiatives:["Saksflyt program","Saksflyt årsrapport-innsamling"],
+      team:["dilnawaz","thomas","erik","maria","nora"],
+      ideas:[
+        { id:nextId(), title:"Budsjett med avviksvisning", person:"maria", note:"Vis planlagt vs. faktisk per kategori, rett i klubbøkonomi-fanen.", votes:5 },
+        { id:nextId(), title:"Bankimport fra CSV", person:"thomas", note:"Slipper manuell registrering av kontoutskrift for mindre klubber.", votes:4 },
+        { id:nextId(), title:"OCR på kvitteringer", person:"thomas", note:"Fotografer kvittering, la systemet foreslå kontering.", votes:3 }
+      ],
+      tasks:[
+        { id:nextId(), title:"Kjøre Supabase-migrasjoner (OPPSETT.md 1–3)", person:"thomas", due:"Denne uken", status:"Pågår" },
+        { id:nextId(), title:"Fylle app/config.js med prosjekt-URL og anon-nøkkel", person:"thomas", due:"Denne uken", status:"Ikke startet" },
+        { id:nextId(), title:"Dytte repo til GitHub og slå på Pages (sakflyt.no)", person:"erik", due:"Denne måneden", status:"Ikke startet" }
+      ],
+      kanban:[
+        { id:nextId(), title:"Tilskuddsmodul", person:"maria", status:"planlagt" },
+        { id:nextId(), title:"AI-forslag til kontering", person:"thomas", status:"planlagt" },
+        { id:nextId(), title:"Årsmøtepakke med signering", person:"erik", status:"pagar" },
+        { id:nextId(), title:"Bankimport fra CSV", person:"thomas", status:"pagar" },
+        { id:nextId(), title:"Rad-nivå-sikkerhet på 26 tabeller", person:"thomas", status:"ferdig" },
+        { id:nextId(), title:"Prototype saksflyt-regnskap.html", person:"dilnawaz", status:"ferdig" },
+        { id:nextId(), title:"Rapportmaler (årsregnskap, revisjon, bilagsjournal)", person:"nora", status:"ferdig" }
+      ],
+      econ:[
+        { label:"Saksflyt program", value:"Pågår", tone:"teal" },
+        { label:"Saksflyt årsrapport-innsamling", value:"Pågår", tone:"teal" },
+        { label:"Samlet kapitalramme", value:kr(1200000) }
+      ],
+      files:[
+        { name:"saksflyt-regnskap-plan.md", type:"MD", meta:"Arkitektur og veivalg" },
+        { name:"OPPSETT.md", type:"MD", meta:"Produksjonssteg 1–4" },
+        { name:"app/styles.css", type:"CSS", meta:"Designsystem, lys/mørk" }
+      ],
+      notes:"sakflyt.no er DNS-pekt mot GitHub Pages. Tre brukere opprettes med midlertidig passord ved lansering, byttes ved første innlogging.",
+      activity:[
+        { person:"thomas", text:"Rad-nivå-sikkerhet ferdigstilt på alle 26 tabeller", when:"i går", tone:"teal" },
+        { person:"dilnawaz", text:"Klikkbar prototype (saksflyt-regnskap.html) delt for tilbakemelding", when:"for 3 dager siden", tone:"teal" },
+        { person:"erik", text:"DNS for sakflyt.no lagt inn hos Domeneshop", when:"for 1 uke siden", tone:"neutral" },
+        { person:"nora", text:"Fire rapportmaler ferdigstilt: årsregnskap, revisjonsgrunnlag, bilagsjournal, prosjektregnskap", when:"for 2 uker siden", tone:"gold" }
+      ]
+    },
+
+    clinica:{
+      id:"clinica", name:"Clinica Medicare", tone:"red",
+      category:"Bemanning · Sykepleiere",
+      status:"Henter kapital",
+      summary:"Bemanningsprosjekt som rekrutterer og leier ut sykepleiere til Clinica Medicare.",
+      wide:false,
+      goal:670000, missing:450000, raised:220000,
+      team:["dilnawaz","sara","erik","maria","nora"],
+      ideas:[
+        { id:nextId(), title:"Samarbeidsavtale med bemanningsbyrå", person:"erik", note:"Supplerer egen rekruttering i oppstartsfasen.", votes:4 },
+        { id:nextId(), title:"Rekrutteringskampanje mot sykepleierstudenter", person:"nora", note:"Siste års studenter ved OsloMet og VID.", votes:3 },
+        { id:nextId(), title:"Sign-on-bonus for helgevakter", person:"sara", note:"Helg er der bemanningsbehovet er størst.", votes:2 }
+      ],
+      tasks:[
+        { id:nextId(), title:"Signere avtale med Clinica Medicare", person:"dilnawaz", due:"Denne uken", status:"Pågår" },
+        { id:nextId(), title:"Lyse ut sykepleierstillinger", person:"sara", due:"Denne uken", status:"Ikke startet" },
+        { id:nextId(), title:"Sette opp vaktplan-mal", person:"erik", due:"Denne måneden", status:"Ikke startet" }
+      ],
+      kanban:[
+        { id:nextId(), title:"Rekrutteringskampanje", person:"nora", status:"planlagt" },
+        { id:nextId(), title:"Onboardingsplan for nyansatte", person:"sara", status:"planlagt" },
+        { id:nextId(), title:"Intervjurunde sykepleiere", person:"sara", status:"pagar" },
+        { id:nextId(), title:"Kapitalinnhenting, runde 2", person:"dilnawaz", status:"pagar" },
+        { id:nextId(), title:"Avtaleutkast med Clinica Medicare", person:"erik", status:"ferdig" },
+        { id:nextId(), title:"Budsjett satt til 670 000 kr", person:"maria", status:"ferdig" }
+      ],
+      econ:[
+        { label:"Mål", value:kr(670000) },
+        { label:"Innhentet", value:kr(220000), tone:"green" },
+        { label:"Mangler", value:kr(450000), tone:"red" }
+      ],
+      econCategories:["Bemanning","Rekruttering","Administrasjon"],
+      files:[
+        { name:"Avtaleutkast – Clinica Medicare.pdf", type:"PDF", meta:"Til signering" },
+        { name:"Budsjett Clinica Medicare.xlsx", type:"XLS", meta:"Oppdatert denne uken" },
+        { name:"Vaktplan-mal.xlsx", type:"XLS", meta:"Utkast" }
+      ],
+      notes:"Mål: første sykepleiere i turnus innen kapitalrunde 2 er lukket.",
+      activity:[
+        { person:"maria", text:"Kapitalrunde 1 fullført – 220 000 kr innhentet", when:"for 2 dager siden", tone:"green" },
+        { person:"erik", text:"Avtaleutkast sendt til Clinica Medicare for gjennomgang", when:"for 4 dager siden", tone:"neutral" },
+        { person:"sara", text:"Kravspesifikasjon for sykepleierstillinger klar", when:"for 1 uke siden", tone:"blue" },
+        { person:"maria", text:"Budsjett satt til 670 000 kr, mål og milepæler avklart", when:"for 2 uker siden", tone:"neutral" }
+      ]
+    },
+
+    ventures:{
+      id:"ventures", name:"Ventures AS IT Selskap", tone:"gold",
+      category:"IT- og konsulentselskap",
+      status:"Henter kapital",
+      summary:"IT- og konsulentselskap under oppbygging. Vidar er kjøpt ut som partner, og selskapet henter kapital for videre drift.",
+      wide:false,
+      need:400000, buyout:600000, buyoutPerson:"vidar",
+      team:["dilnawaz","thomas","erik","maria","vidar"],
+      ideas:[
+        { id:nextId(), title:"Fastpris-pakker for små bedrifter", person:"erik", note:"Regnskap, IT-drift og support i én avtale.", votes:4 },
+        { id:nextId(), title:"Partnerskap med regnskapsbyråer", person:"dilnawaz", note:"De har kundene, vi har den tekniske leveransen.", votes:3 },
+        { id:nextId(), title:"Pilotprosjekt med første eksterne kunde", person:"thomas", note:"Referansecase før salgsmateriell lages.", votes:3 }
+      ],
+      tasks:[
+        { id:nextId(), title:"Signere utkjøpsavtale med Vidar", person:"dilnawaz", due:"Ferdig", status:"Ferdig" },
+        { id:nextId(), title:"Sette opp selskapsstruktur og fullmakter", person:"maria", due:"Denne uken", status:"Pågår" },
+        { id:nextId(), title:"Bygge tjenesteportefølje og prisliste", person:"erik", due:"Denne måneden", status:"Ikke startet" }
+      ],
+      kanban:[
+        { id:nextId(), title:"Tjenestepakker og prisliste", person:"erik", status:"planlagt" },
+        { id:nextId(), title:"Ny nettside", person:"thomas", status:"planlagt" },
+        { id:nextId(), title:"Kapitalinnhenting", person:"dilnawaz", status:"pagar" },
+        { id:nextId(), title:"Ansette første konsulent", person:"maria", status:"pagar" },
+        { id:nextId(), title:"Utkjøp av Vidar gjennomført", person:"dilnawaz", status:"ferdig" },
+        { id:nextId(), title:"Selskap stiftet", person:"maria", status:"ferdig" }
+      ],
+      econ:[
+        { label:"Kapitalbehov", value:kr(400000), tone:"gold" },
+        { label:"Utkjøp av partner (Vidar) – gjennomført", value:kr(600000) }
+      ],
+      files:[
+        { name:"Utkjøpsavtale – Vidar.pdf", type:"PDF", meta:"Signert" },
+        { name:"Selskapsavtale Ventures AS.pdf", type:"PDF", meta:"Gjeldende versjon" }
+      ],
+      notes:"Kapitalbehovet på 400 000 kr dekker drift og første ansettelser frem til selskapet har egne kunder.",
+      activity:[
+        { person:"maria", text:"Kapitalbehov satt til 400 000 kr for videre drift", when:"i går", tone:"gold" },
+        { person:"dilnawaz", text:"Utkjøp av Vidar gjennomført for 600 000 kr", when:"for 5 dager siden", tone:"neutral" },
+        { person:"maria", text:"Selskap stiftet", when:"for 3 uker siden", tone:"neutral" }
+      ]
+    },
+
+    kgv:{
+      id:"kgv", name:"KGV Verktøy", tone:"green",
+      category:"SaaS · Offentlige anskaffelser",
+      status:"Ferdig utviklet",
+      summary:"Ferdig utviklet konkurransegjennomføringsverktøy (KGV) – direkte konkurrent til Cobrief, HYYR og Mercell, integrert med Anbudsradar.no.",
+      wide:false,
+      need:500000, devPct:100,
+      competitors:["Cobrief","HYYR","Mercell"],
+      integration:"Anbudsradar.no",
+      team:["dilnawaz","thomas","nora","erik","maria"],
+      ideas:[
+        { id:nextId(), title:"Fastpris-abonnement for kommuner", person:"nora", note:"Lavere terskel enn dagens konkurrenter for mindre kommuner.", votes:5 },
+        { id:nextId(), title:"Integrasjon mot Doffin", person:"thomas", note:"Automatisk henting av kunngjøringer.", votes:4 },
+        { id:nextId(), title:"Distribusjonsavtale med Anbudsradar.no", person:"dilnawaz", note:"Bygge videre på eksisterende integrasjon.", votes:4 }
+      ],
+      tasks:[
+        { id:nextId(), title:"Klargjøre demo for potensielle kunder", person:"nora", due:"Denne uken", status:"Pågår" },
+        { id:nextId(), title:"Sette pris- og pakkestruktur", person:"erik", due:"Denne uken", status:"Ikke startet" },
+        { id:nextId(), title:"Onboarde første pilotkunde", person:"thomas", due:"Denne måneden", status:"Ikke startet" }
+      ],
+      kanban:[
+        { id:nextId(), title:"Doffin-integrasjon", person:"thomas", status:"planlagt" },
+        { id:nextId(), title:"Prismodell for kommuner", person:"erik", status:"planlagt" },
+        { id:nextId(), title:"Salgsmateriell", person:"nora", status:"pagar" },
+        { id:nextId(), title:"Pilotsamtaler med tre kommuner", person:"nora", status:"pagar" },
+        { id:nextId(), title:"Kjernefunksjonalitet KGV", person:"thomas", status:"ferdig" },
+        { id:nextId(), title:"Integrasjon med Anbudsradar.no", person:"thomas", status:"ferdig" },
+        { id:nextId(), title:"Konkurrentanalyse (Cobrief, HYYR, Mercell)", person:"dilnawaz", status:"ferdig" }
+      ],
+      econ:[
+        { label:"Kapitalbehov for lansering", value:kr(500000), tone:"green" },
+        { label:"Utvikling", value:"100 % ferdig" }
+      ],
+      files:[
+        { name:"KGV Verktøy – produktark.pdf", type:"PDF", meta:"Til salgsmøter" },
+        { name:"Konkurrentanalyse.xlsx", type:"XLS", meta:"Cobrief · HYYR · Mercell" },
+        { name:"Integrasjonsdokumentasjon – Anbudsradar.pdf", type:"PDF", meta:"Teknisk" }
+      ],
+      notes:"Verktøyet er ferdig utviklet. Kapitalen på 500 000 kr går til salg, markedsføring og onboarding av de første kundene.",
+      activity:[
+        { person:"thomas", text:"Integrasjon med Anbudsradar.no fullført", when:"for 3 dager siden", tone:"green" },
+        { person:"dilnawaz", text:"Konkurrentanalyse av Cobrief, HYYR og Mercell ferdigstilt", when:"for 6 dager siden", tone:"neutral" },
+        { person:"nora", text:"Kapitalbehov for lansering satt til 500 000 kr", when:"for 1 uke siden", tone:"gold" },
+        { person:"thomas", text:"Kjernefunksjonalitet i KGV Verktøy erklært ferdig utviklet", when:"for 2 uker siden", tone:"green" }
+      ]
+    }
+  };
+  var PROJECT_ORDER = ["saksflyt","clinica","ventures","kgv"];
+
+  var TABS = [
+    { key:"oversikt", label:"Oversikt" },
+    { key:"ideer", label:"Idéer" },
+    { key:"oppgaver", label:"Oppgaver" },
+    { key:"fremdrift", label:"Fremdrift" },
+    { key:"okonomi", label:"Økonomi" },
+    { key:"filer", label:"Filer og notater" },
+    { key:"aktivitet", label:"Aktivitet" }
+  ];
+
+  var state = {
+    view:"home", projectId:null, tab:"oversikt",
+    currentUser:"dilnawaz", userMenuOpen:false, settingsOpen:false,
+    guestEnabled:true, guestScope:{ okonomi:true, filer:true, aktivitet:false }
+  };
+  function isGuest(){ return state.currentUser === "gjest"; }
+
+  var toastTimer = null;
+  function toast(msg){
+    var el = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove("show"); }, 3200);
+  }
+
+  function renderTopbar(){
+    var me = PEOPLE[state.currentUser];
+    var v = TONE_VARS[me.tone];
+    document.getElementById("userChip").innerHTML =
+      '<span class="avatar sm" style="background:var(' + v[0] + ');color:var(' + v[1] + ')">' + me.initials + '</span>' +
+      '<span class="txt"><b>' + esc(me.name.split(" ")[0]) + '</b><span>' + esc(me.role) + '</span></span>';
+
+    var menu = document.getElementById("userMenu");
+    menu.hidden = !state.userMenuOpen;
+    var html = '<div class="lbl">Logget inn som</div>';
+    TEAM_ORDER.forEach(function(key){
+      var p = PEOPLE[key];
+      html += '<button type="button" class="' + (state.currentUser === key ? "on" : "") + '" data-action="switch-user" data-user="' + key + '">' +
+        avatar(key, "sm") + '<span><b style="display:block;font-size:.83rem;font-weight:640;">' + esc(p.name) + '</b><small style="color:var(--muted);font-size:.72rem;">' + esc(p.role) + '</small></span></button>';
+    });
+    html += '<hr>';
+    html += '<button type="button" class="' + (state.currentUser === "gjest" ? "on" : "") + '" data-action="switch-user" data-user="gjest">' +
+      avatar("gjest", "sm") + '<span><b style="display:block;font-size:.83rem;font-weight:640;">Gjestebruker</b><small style="color:var(--muted);font-size:.72rem;">Delt, samtidig innlogging</small></span></button>';
+    html += '<div class="hint">Flere personer kan bruke gjestepålogging samtidig. Gjester har kun lesetilgang.</div>';
+    menu.innerHTML = html;
+  }
+
+  function computeStats(){
+    var totalGoal = 0, ready = 0, people = {};
+    PROJECT_ORDER.forEach(function(id){
+      var p = PROJECTS[id];
+      totalGoal += p.goal || p.need || 0;
+      if (p.devPct === 100) ready += 1;
+      p.team.forEach(function(t){ people[t] = true; });
+    });
+    return { count: PROJECT_ORDER.length, totalGoal: totalGoal, ready: ready, people: Object.keys(people).length };
+  }
+
+  function badge(text, tone){
+    return '<span class="badge' + (tone ? " " + tone : " neutral") + '">' + esc(text) + '</span>';
+  }
+
+  function moneyBlockForCard(p){
+    if (p.id === "clinica"){
+      var pct = Math.round((p.raised / p.goal) * 100);
+      return (
+        '<div class="stort">' + kr(p.goal) + '</div><div class="tiny dim">Mål</div>' +
+        '<div class="fremdrift" style="margin-top:6px"><div class="spor"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="tall"><span>Innhentet ' + kr(p.raised) + '</span><span>Mangler ' + kr(p.missing) + '</span></div></div>'
+      );
+    }
+    if (p.id === "ventures"){
+      return (
+        '<div class="stort">' + kr(p.need) + '</div><div class="tiny dim">Kapitalbehov</div>' +
+        '<div class="note info" style="margin-top:8px">Kjøpte ut Vidar som partner for ' + kr(p.buyout) + ' – gjennomført.</div>'
+      );
+    }
+    if (p.id === "saksflyt"){
+      return (
+        '<div class="stort">' + kr(p.goal) + '</div><div class="tiny dim">Samlet kapitalramme</div>' +
+        '<div class="rowline" style="margin-top:8px">' + p.initiatives.map(function(i){ return badge(i); }).join("") + '</div>'
+      );
+    }
+    if (p.id === "kgv"){
+      return (
+        '<div class="stort">' + kr(p.need) + '</div><div class="tiny dim">Kapitalbehov for lansering</div>' +
+        '<div class="rowline" style="margin-top:8px">' + badge("Utvikling: 100 %", "green") +
+          p.competitors.map(function(c){ return badge("vs. " + c); }).join("") + '</div>'
+      );
+    }
+    return "";
+  }
+
+  function statusTone(status){
+    return { "Pågår":"teal", "Henter kapital":"red", "Ferdig utviklet":"green" }[status] || "neutral";
+  }
+
+  function renderCard(p){
+    var teamHtml = p.team.slice(0, 4).map(function(t){ return avatar(t, "sm"); }).join("");
+    var extra = p.team.length > 4 ? '<span class="atlas-more">+' + (p.team.length - 4) + '</span>' : "";
+    return (
+      '<button type="button" class="kort atlas-card' + (p.wide ? " wide" : "") + '" data-action="open-project" data-id="' + p.id + '">' +
+        '<div class="between"><span class="badge neutral">' + esc(p.category) + '</span>' + badge(p.status, statusTone(p.status)) + '</div>' +
+        '<h3 style="font-size:1.15rem;">' + esc(p.name) + '</h3>' +
+        '<p class="sub" style="margin:0">' + esc(p.summary) + '</p>' +
+        '<div style="border-top:1px solid var(--line);padding-top:14px;margin-top:auto">' + moneyBlockForCard(p) + '</div>' +
+        '<div class="between" style="margin-top:4px"><div class="atlas-avatars">' + teamHtml + extra + '</div><span class="strong" style="font-size:.83rem">Åpne →</span></div>' +
+      '</button>'
+    );
+  }
+
+  function renderHome(){
+    var s = computeStats();
+    var html = '';
+    html += '<div class="eyebrow">Prosjekter</div>';
+    html += '<h1>Oversikt over pågående prosjekter</h1>';
+    html += '<p class="sub">Fire prosjekter, fem personer i snitt hver. Trykk på en boks for idéer, oppgaver, fremdrift og økonomi.</p>';
+    html += '<div class="grid g4" style="margin-top:22px">';
+    html += '<div class="kpi"><span class="k">Aktive prosjekter</span><span class="v">' + s.count + '</span></div>';
+    html += '<div class="kpi"><span class="k">Samlet kapitalramme</span><span class="v">' + kr(s.totalGoal) + '</span></div>';
+    html += '<div class="kpi"><span class="k">Klar til lansering</span><span class="v">' + s.ready + '</span></div>';
+    html += '<div class="kpi"><span class="k">Deltakere totalt</span><span class="v">' + s.people + '</span></div>';
+    html += '</div>';
+    html += '<div class="between" style="margin-top:32px;margin-bottom:14px"><h2>Prosjekter</h2><span class="tiny dim">Klikk for å åpne</span></div>';
+    html += '<div class="atlas-bento">';
+    PROJECT_ORDER.forEach(function(id){ html += renderCard(PROJECTS[id]); });
+    html += '<button type="button" class="atlas-ghost" data-action="new-project"><span style="font-size:1.4rem">+</span>Nytt prosjekt</button>';
+    html += '</div>';
+    document.getElementById("main").innerHTML = html;
+  }
+
+  function statTilesFor(p){
+    if (p.id === "clinica") return [
+      { label:"Mål", value:kr(p.goal) }, { label:"Innhentet", value:kr(p.raised) },
+      { label:"Mangler", value:kr(p.missing) }, { label:"Deltakere", value:String(p.team.length) }
+    ];
+    if (p.id === "ventures") return [
+      { label:"Kapitalbehov", value:kr(p.need) }, { label:"Utkjøp gjennomført", value:kr(p.buyout) },
+      { label:"Deltakere", value:String(p.team.length) }, { label:"Status", value:p.status }
+    ];
+    if (p.id === "kgv") return [
+      { label:"Kapitalbehov", value:kr(p.need) }, { label:"Utvikling", value:p.devPct + " %" },
+      { label:"Konkurrenter kartlagt", value:String(p.competitors.length) }, { label:"Deltakere", value:String(p.team.length) }
+    ];
+    var open = p.tasks.filter(function(t){ return t.status !== "Ferdig"; }).length;
+    return [
+      { label:"Samlet kapitalramme", value:kr(p.goal) }, { label:"Deltakere", value:String(p.team.length) },
+      { label:"Åpne oppgaver", value:String(open) }, { label:"Status", value:p.status }
+    ];
+  }
+
+  function renderDetailHead(p){
+    var stats = statTilesFor(p);
+    var html = '';
+    html += '<button type="button" class="btn stille" data-action="go-home">← Alle prosjekter</button>';
+    html += '<div class="topbar" style="margin-top:8px"><div><span class="badge neutral">' + esc(p.category) + '</span><h1 style="margin-top:8px">' + esc(p.name) + '</h1><p class="sub">' + esc(p.summary) + '</p></div>';
+    html += badge(p.status, statusTone(p.status)) + '</div>';
+    html += '<div class="grid g4" style="margin:22px 0">' + stats.map(function(t){
+      return '<div class="kpi"><span class="k">' + esc(t.label) + '</span><span class="v">' + t.value + '</span></div>';
+    }).join("") + '</div>';
+    if (isGuest()){
+      html += '<div class="atlas-guest-banner">Gjestevisning – lesetilgang. Idéer, oppgaver og fremdrift kan ikke endres.</div>';
+    }
+    html += '<nav class="faner">' + TABS.map(function(t){
+      return '<button type="button" class="' + (state.tab === t.key ? "on" : "") + '" data-action="switch-tab" data-tab="' + t.key + '">' + t.label + '</button>';
+    }).join("") + '</nav>';
+    return html;
+  }
+
+  function renderOversikt(p){
+    var html = '<div class="split">';
+    html += '<div class="stack">';
+    html += '<div class="card"><div class="card-head"><h2>Om prosjektet</h2></div><div class="card-body"><p class="sub" style="margin:0">' + esc(p.summary) + '</p></div></div>';
+    html += '<div class="card"><div class="card-head"><h2>Siste hendelser</h2></div><div class="card-body"><div class="deadline-list">' + p.activity.slice(0, 3).map(function(a){
+      return '<div class="deadline ' + (a.tone || "neutral") + '"><span class="stripe"></span><div class="deadline-text"><b>' + esc(PEOPLE[a.person].name.split(" ")[0]) + ' ' + esc(a.text) + '</b><small>' + esc(a.when) + '</small></div><span></span></div>';
+    }).join("") + '</div></div></div>';
+    html += '</div>';
+    html += '<div class="stack">';
+    html += '<div class="card"><div class="card-head"><h2>Deltakere</h2></div><div class="card-body"><div class="rowline">' + p.team.map(function(t){
+      var pe = PEOPLE[t];
+      return '<div class="atlas-person">' + avatar(t, "sm") + '<span><b style="display:block;font-size:.83rem;font-weight:640;">' + esc(pe.name) + '</b><small style="color:var(--muted);font-size:.75rem;">' + esc(pe.role) + '</small></span></div>';
+    }).join("") + '</div></div></div>';
+    html += '<div class="card"><div class="card-head"><h2>Notat</h2></div><div class="card-body"><p class="sub" style="margin:0">' + esc(p.notes) + '</p></div></div>';
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderIdeer(p){
+    var guest = isGuest();
+    var html = '<div class="stack">';
+    if (!p.ideas.length){ html += '<div class="empty"><b>Ingen idéer ennå</b><p>Legg til den første under.</p></div>'; }
+    p.ideas.forEach(function(idea){
+      html += '<div class="atlas-row"><div><span class="tittel">' + esc(idea.title) + '</span><p class="notat">' + esc(idea.note) + '</p>' +
+        '<div class="meta">' + avatar(idea.person, "xs") + '<span>' + esc(PEOPLE[idea.person].name) + '</span><span>·</span><span>' + idea.votes + ' stemmer</span></div></div>' +
+        '<div class="atlas-actions"><button type="button" class="btn primary sm" data-action="idea-to-task" data-id="' + idea.id + '"' + (guest ? " disabled title=\"Gjester har kun lesetilgang\"" : "") + '>Gjør til oppgave →</button></div></div>';
+    });
+    html += '</div>';
+    html += '<form class="atlas-add-row" data-action="add-idea">' +
+      '<input type="text" name="title" placeholder="Ny idé …" required' + (guest ? " disabled" : "") + '>' +
+      '<button type="submit" class="btn primary"' + (guest ? " disabled" : "") + '>Legg til</button></form>';
+    return html;
+  }
+
+  function renderOppgaver(p){
+    var guest = isGuest();
+    var tone = { "Ikke startet":"neutral", "Pågår":"gold", "Ferdig":"green" };
+    var html = '<div class="stack">';
+    p.tasks.forEach(function(t){
+      html += '<div class="atlas-row"><div><span class="tittel">' + esc(t.title) + '</span>' +
+        '<div class="meta">' + avatar(t.person, "xs") + '<span>' + esc(PEOPLE[t.person].name) + '</span><span>·</span><span>Frist: ' + esc(t.due) + '</span></div></div>' +
+        '<div class="atlas-actions">' + badge(t.status, tone[t.status]) +
+        (guest ? "" : '<button type="button" class="btn sm" data-action="cycle-task" data-id="' + t.id + '">Endre status</button>') +
+        '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  var KCOLS = [
+    { key:"planlagt", label:"Planlagt", tone:"neutral" },
+    { key:"pagar", label:"Pågår", tone:"gold" },
+    { key:"ferdig", label:"Ferdig", tone:"green" }
+  ];
+  function renderFremdrift(p){
+    var guest = isGuest();
+    var html = '<div class="atlas-kanban">';
+    KCOLS.forEach(function(col){
+      var items = p.kanban.filter(function(k){ return k.status === col.key; });
+      html += '<div class="atlas-kcol" data-action="kcol" data-status="' + col.key + '">';
+      html += '<div class="atlas-kcol-head">' + badge(col.label, col.tone) + '<span class="antall">' + items.length + '</span></div>';
+      items.forEach(function(k){
+        html += '<div class="atlas-kcard"' + (guest ? "" : ' draggable="true"') + ' data-action="kcard" data-id="' + k.id + '">' +
+          '<div class="tittel">' + esc(k.title) + '</div>' +
+          '<div class="meta">' + avatar(k.person, "xs") + '<span>' + esc(PEOPLE[k.person].name.split(" ")[0]) + '</span></div></div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    if (!guest) html += '<p class="tiny dim" style="margin-top:14px">Dra kort mellom kolonnene for å oppdatere status.</p>';
+    return html;
+  }
+
+  function renderOkonomi(p){
+    var html = '<div class="split"><div class="card"><div class="card-head"><h2>Nøkkeltall</h2></div><div class="card-body">';
+    html += '<table class="atlas-econ-table"><tbody>';
+    p.econ.forEach(function(row){ html += '<tr><td>' + esc(row.label) + '</td><td>' + esc(row.value) + '</td></tr>'; });
+    html += '</tbody></table>';
+    if (p.econCategories){
+      html += '<div class="rowline" style="margin-top:14px">' + p.econCategories.map(function(c){ return badge(c); }).join("") + '</div>';
+    }
+    html += '</div></div><div class="card"><div class="card-head"><h2>Om tallene</h2></div><div class="card-body"><p class="sub" style="margin:0">' + esc(p.notes) + '</p></div></div></div>';
+    return html;
+  }
+
+  function renderFiler(p){
+    var guest = isGuest();
+    var html = '<div class="split"><div class="card"><div class="card-head"><h2>Filer</h2></div><div class="card-body">';
+    p.files.forEach(function(f){
+      html += '<div class="atlas-file-row"><span class="atlas-filetype">' + f.type + '</span><div><b>' + esc(f.name) + '</b><div class="tiny dim">' + esc(f.meta) + '</div></div></div>';
+    });
+    html += '</div></div><div class="card"><div class="card-head"><h2>Notater</h2></div><div class="card-body"><textarea rows="6"' + (guest ? " readonly" : "") + '>' + esc(p.notes) + '</textarea></div></div></div>';
+    return html;
+  }
+
+  function renderAktivitet(p){
+    var html = '<div class="card"><div class="card-body"><div class="deadline-list">';
+    p.activity.forEach(function(a){
+      html += '<div class="deadline ' + (a.tone || "neutral") + '"><span class="stripe"></span><div class="deadline-text"><b>' + esc(PEOPLE[a.person].name) + '</b><small>' + esc(a.text) + ' — ' + esc(a.when) + '</small></div><span></span></div>';
+    });
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderTabPanel(p){
+    var fn = { oversikt:renderOversikt, ideer:renderIdeer, oppgaver:renderOppgaver, fremdrift:renderFremdrift, okonomi:renderOkonomi, filer:renderFiler, aktivitet:renderAktivitet }[state.tab];
+    return fn(p);
+  }
+
+  function renderProject(){
+    var p = PROJECTS[state.projectId];
+    document.getElementById("main").innerHTML = renderDetailHead(p) + '<div id="tabPanel">' + renderTabPanel(p) + '</div>';
+    bindKanbanDnD();
+  }
+
+  function bindKanbanDnD(){
+    if (isGuest()) return;
+    document.querySelectorAll('.atlas-kcard[draggable="true"]').forEach(function(c){
+      c.addEventListener("dragstart", function(e){
+        e.dataTransfer.setData("text/plain", c.getAttribute("data-id"));
+        e.dataTransfer.effectAllowed = "move";
+      });
+    });
+    document.querySelectorAll(".atlas-kcol").forEach(function(col){
+      col.addEventListener("dragover", function(e){ e.preventDefault(); col.classList.add("over"); });
+      col.addEventListener("dragleave", function(){ col.classList.remove("over"); });
+      col.addEventListener("drop", function(e){
+        e.preventDefault(); col.classList.remove("over");
+        var id = parseInt(e.dataTransfer.getData("text/plain"), 10);
+        var status = col.getAttribute("data-status");
+        var p = PROJECTS[state.projectId];
+        var card = p.kanban.find(function(k){ return k.id === id; });
+        if (card && card.status !== status){
+          card.status = status;
+          document.getElementById("tabPanel").innerHTML = renderTabPanel(p);
+          bindKanbanDnD();
+          toast("«" + card.title + "» flyttet til " + KCOLS.find(function(c){ return c.key === status; }).label);
+        }
+      });
+    });
+  }
+
+  function renderSettings(){
+    var overlay = document.getElementById("settingsOverlay");
+    overlay.hidden = !state.settingsOpen;
+    if (!state.settingsOpen) return;
+    var html = '<div class="modal-head"><h2>Team og tilgang</h2><p>Hver person har sin egen innlogging. I tillegg finnes én delt gjestetilgang.</p></div>';
+    html += '<div class="modal-body"><div class="stack">';
+    TEAM_ORDER.forEach(function(key){
+      var p = PEOPLE[key];
+      html += '<div class="rowline" style="justify-content:space-between">' +
+        '<span class="rowline">' + avatar(key, "md") + '<span><b style="display:block;font-size:.87rem;font-weight:640;">' + esc(p.name) + '</b><small style="color:var(--muted);font-size:.78rem;">' + esc(p.role) + '</small></span></span>' +
+        badge(key === "dilnawaz" ? "Eier" : "Medlem") + '</div>';
+    });
+    html += '</div>';
+    html += '<form class="rowline" style="margin-top:14px" data-action="invite"><input type="email" placeholder="navn@epost.no" required style="flex:1"><button type="submit" class="btn primary">Inviter</button></form>';
+    html += '<div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)">';
+    html += '<div class="between"><div><b style="font-size:.9rem">Delt gjestetilgang</b><p class="tiny dim" style="margin-top:2px">Flere personer kan logge inn med samme kode samtidig. Gjester har kun lesetilgang.</p></div>';
+    html += '<button type="button" class="atlas-switch' + (state.guestEnabled ? " on" : "") + '" data-action="toggle-guest" aria-label="Slå av/på gjestetilgang"><i></i></button></div>';
+    if (state.guestEnabled){
+      html += '<div class="atlas-guest-code"><code>ATLAS-GJEST-7K2Q</code><button type="button" class="btn sm" data-action="copy-code">Kopier kode</button></div>';
+      html += '<div class="atlas-scope-row">' + scopeChip("okonomi", "Økonomi") + scopeChip("filer", "Filer") + scopeChip("aktivitet", "Aktivitet") + '</div>';
+    }
+    html += '</div></div>';
+    html += '<div class="modal-foot"><button type="button" class="btn" data-action="close-settings">Lukk</button></div>';
+    document.getElementById("settingsModal").innerHTML = html;
+  }
+  function scopeChip(key, label){
+    var on = state.guestScope[key];
+    return '<label class="atlas-scope-chip"><input type="checkbox" data-action="scope-toggle" data-scope="' + key + '"' + (on ? " checked" : "") + '>' + label + '</label>';
+  }
+
+  function render(){
+    renderTopbar();
+    renderSettings();
+    if (state.view === "home") renderHome(); else renderProject();
+  }
+
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("[data-action]");
+    if (!t){
+      if (!e.target.closest(".atlas-user") && state.userMenuOpen){ state.userMenuOpen = false; renderTopbar(); }
+      return;
+    }
+    var action = t.getAttribute("data-action");
+
+    if (action === "go-home"){ state.view = "home"; state.tab = "oversikt"; render(); return; }
+    if (action === "open-project" || action === "new-project"){
+      if (action === "new-project"){ toast("Nytt prosjekt er en demo-knapp i denne prototypen."); return; }
+      state.view = "project"; state.projectId = t.getAttribute("data-id"); state.tab = "oversikt"; render(); return;
+    }
+    if (action === "switch-tab"){ state.tab = t.getAttribute("data-tab"); renderProject(); return; }
+    if (action === "toggle-user-menu"){ state.userMenuOpen = !state.userMenuOpen; renderTopbar(); return; }
+    if (action === "switch-user"){
+      state.currentUser = t.getAttribute("data-user"); state.userMenuOpen = false;
+      toast(isGuest() ? "Byttet til gjestevisning (lesetilgang)" : "Byttet til " + PEOPLE[state.currentUser].name);
+      render(); return;
+    }
+    if (action === "open-settings"){ state.settingsOpen = true; renderSettings(); return; }
+    if (action === "close-settings"){ state.settingsOpen = false; renderSettings(); return; }
+    if (action === "toggle-guest"){ state.guestEnabled = !state.guestEnabled; renderSettings(); return; }
+    if (action === "copy-code"){
+      try { navigator.clipboard.writeText("ATLAS-GJEST-7K2Q"); } catch (err) {}
+      toast("Gjestekode kopiert"); return;
+    }
+    if (action === "idea-to-task"){
+      if (isGuest()) return;
+      var p = PROJECTS[state.projectId];
+      var id = parseInt(t.getAttribute("data-id"), 10);
+      var idx = p.ideas.findIndex(function(i){ return i.id === id; });
+      if (idx === -1) return;
+      var idea = p.ideas.splice(idx, 1)[0];
+      p.tasks.unshift({ id:nextId(), title:idea.title, person:idea.person, due:"Ikke satt", status:"Ikke startet" });
+      state.tab = "oppgaver";
+      render();
+      toast("«" + idea.title + "» er nå en oppgave");
+      return;
+    }
+    if (action === "cycle-task"){
+      if (isGuest()) return;
+      var pr = PROJECTS[state.projectId];
+      var tid = parseInt(t.getAttribute("data-id"), 10);
+      var task = pr.tasks.find(function(x){ return x.id === tid; });
+      if (!task) return;
+      var order = ["Ikke startet", "Pågår", "Ferdig"];
+      task.status = order[(order.indexOf(task.status) + 1) % order.length];
+      document.getElementById("tabPanel").innerHTML = renderTabPanel(pr);
+      return;
+    }
+  }, true);
+
+  document.addEventListener("change", function(e){
+    if (e.target.matches('[data-action="scope-toggle"]')){
+      state.guestScope[e.target.getAttribute("data-scope")] = e.target.checked;
+    }
+  });
+
+  document.addEventListener("submit", function(e){
+    var form = e.target.closest("[data-action]");
+    if (!form) return;
+    e.preventDefault();
+    var action = form.getAttribute("data-action");
+    if (action === "add-idea"){
+      if (isGuest()) return;
+      var input = form.querySelector('input[name="title"]');
+      var title = input.value.trim();
+      if (!title) return;
+      var p = PROJECTS[state.projectId];
+      p.ideas.push({ id:nextId(), title:title, person:state.currentUser, note:"Lagt til nå.", votes:0 });
+      document.getElementById("tabPanel").innerHTML = renderTabPanel(p);
+      toast("Idé lagt til");
+      return;
+    }
+    if (action === "invite"){
+      form.querySelector("input").value = "";
+      toast("Invitasjon sendt (demo)");
+      return;
+    }
+  });
+
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && state.settingsOpen){ state.settingsOpen = false; renderSettings(); }
+  });
+  document.getElementById("settingsOverlay").addEventListener("click", function(e){
+    if (e.target === e.currentTarget){ state.settingsOpen = false; renderSettings(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
