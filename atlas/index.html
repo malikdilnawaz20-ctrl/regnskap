@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saksflyt Prosjekter — Atlas</title>
 <meta name="description" content="Enkel prosjektmodul for Saksflyt: idéer, oppgaver, fremdrift og økonomi, med delt gjestetilgang.">
-<meta name="theme-color" content="#073F43">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23087F7A'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>A</text></svg>">
+<meta name="theme-color" content="#1B3A63">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231B3A63'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>A</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,650&display=swap">
 <link rel="stylesheet" href="../app/styles.css">
 <link rel="stylesheet" href="../app/atlas.css">
 </head>
@@ -50,6 +50,8 @@
     sara:{ name:"Sara Nilsen", role:"Fagansvarlig sykepleie", initials:"SN", tone:"blue" },
     nora:{ name:"Nora Kaldheim", role:"Marked", initials:"NK", tone:"gold" },
     vidar:{ name:"Vidar Amundsen", role:"Tidligere partner (kjøpt ut)", initials:"VA", tone:"neutral" },
+    robert:{ name:"Robert Myhre", role:"Ekstern kontakt — Anbudsradar/FOA", initials:"RM", tone:"blue" },
+    vidaro:{ name:"Vidar Osen", role:"Ekstern kontakt — Anbudsradar/FOA", initials:"VO", tone:"gold" },
     gjest:{ name:"Gjestebruker", role:"Delt gjestetilgang", initials:"GB", tone:"neutral" }
   };
   var TEAM_ORDER = ["dilnawaz","erik","maria","thomas","sara","nora"];
@@ -70,7 +72,7 @@
       id:"saksflyt", name:"Saksflyt Regnskap", tone:"teal",
       category:"SaaS · Regnskap og foreninger",
       status:"Pågår",
-      summary:"Regnskapsmotor og saksflyt for foreninger og idrettslag – med automatisk årsrapport-innsamling for tilskuddsgivere.",
+      summary:"Regnskapsmotor og saksflyt for foreninger og idrettslag – med automatisk årsrapport-innsamling for tilskuddsgivere. Fakturamodulene er allerede live på sakflyt.no; selve bokføringsmotoren (bilag, hovedbok, MVA, lønn) er fortsatt prototype med låst arkitektur som neste steg.",
       wide:true,
       goal:1200000,
       initiatives:["Saksflyt program","Saksflyt årsrapport-innsamling"],
@@ -78,21 +80,27 @@
       ideas:[
         { id:nextId(), title:"Budsjett med avviksvisning", person:"maria", note:"Vis planlagt vs. faktisk per kategori, rett i klubbøkonomi-fanen.", votes:5 },
         { id:nextId(), title:"Bankimport fra CSV", person:"thomas", note:"Slipper manuell registrering av kontoutskrift for mindre klubber.", votes:4 },
-        { id:nextId(), title:"OCR på kvitteringer", person:"thomas", note:"Fotografer kvittering, la systemet foreslå kontering.", votes:3 }
+        { id:nextId(), title:"OCR på kvitteringer", person:"thomas", note:"Fotografer kvittering, la systemet foreslå kontering.", votes:3 },
+        { id:nextId(), title:"Serverside-PDF for arkivkopi", person:"thomas", note:"Samme HTML-maler, rendret av en headless Chromium på server i stedet for nettleseren – arkivkopien blir identisk uansett hvem som åpner den.", votes:4 }
       ],
       tasks:[
-        { id:nextId(), title:"Kjøre Supabase-migrasjoner (OPPSETT.md 1–3)", person:"thomas", due:"Denne uken", status:"Pågår" },
-        { id:nextId(), title:"Fylle app/config.js med prosjekt-URL og anon-nøkkel", person:"thomas", due:"Denne uken", status:"Ikke startet" },
-        { id:nextId(), title:"Dytte repo til GitHub og slå på Pages (sakflyt.no)", person:"erik", due:"Denne måneden", status:"Ikke startet" }
+        { id:nextId(), title:"Koble fakturamalene til regnskapsmodulens Invoice-tabell i stedet for lokal tilstand", person:"thomas", due:"Denne måneden", status:"Ikke startet" },
+        { id:nextId(), title:"EHF-eksport — mapping mot nummerserien, e-fakturaplikt fra 1.1.2027", person:"thomas", due:"Innen nyttår", status:"Ikke startet" },
+        { id:nextId(), title:"Serverside-PDF for arkivkopi (samme HTML, headless Chromium)", person:"thomas", due:"Denne måneden", status:"Ikke startet" }
       ],
       kanban:[
+        { id:nextId(), title:"Bilagsføring, hovedbok og MVA-melding", person:"thomas", status:"planlagt" },
+        { id:nextId(), title:"Lønnskjøring og A-melding", person:"maria", status:"planlagt" },
         { id:nextId(), title:"Tilskuddsmodul", person:"maria", status:"planlagt" },
         { id:nextId(), title:"AI-forslag til kontering", person:"thomas", status:"planlagt" },
-        { id:nextId(), title:"Årsmøtepakke med signering", person:"erik", status:"pagar" },
-        { id:nextId(), title:"Bankimport fra CSV", person:"thomas", status:"pagar" },
-        { id:nextId(), title:"Rad-nivå-sikkerhet på 26 tabeller", person:"thomas", status:"ferdig" },
-        { id:nextId(), title:"Prototype saksflyt-regnskap.html", person:"dilnawaz", status:"ferdig" },
-        { id:nextId(), title:"Rapportmaler (årsregnskap, revisjon, bilagsjournal)", person:"nora", status:"ferdig" }
+        { id:nextId(), title:"Attestering og anvisning (firehåndsprinsipp)", person:"thomas", status:"pagar" },
+        { id:nextId(), title:"EHF-eksport mot nummerserien", person:"thomas", status:"pagar" },
+        { id:nextId(), title:"Rad-nivå-sikkerhet på alle tabeller", person:"thomas", status:"ferdig" },
+        { id:nextId(), title:"Faktura Studio (utgående faktura) live på sakflyt.no", person:"thomas", status:"ferdig" },
+        { id:nextId(), title:"Faktura generator (fakturering på vegne av leverandører) live", person:"thomas", status:"ferdig" },
+        { id:nextId(), title:"Årsrapport som PDF-dokument live", person:"nora", status:"ferdig" },
+        { id:nextId(), title:"Atlas prosjektmodul live", person:"dilnawaz", status:"ferdig" },
+        { id:nextId(), title:"Delbetaling, forskudd og opplåsing av utstedt faktura", person:"thomas", status:"ferdig" }
       ],
       econ:[
         { label:"Saksflyt program", value:"Pågår", tone:"teal" },
@@ -101,15 +109,18 @@
       ],
       files:[
         { name:"saksflyt-regnskap-plan.md", type:"MD", meta:"Arkitektur og veivalg" },
-        { name:"OPPSETT.md", type:"MD", meta:"Produksjonssteg 1–4" },
+        { name:"norske-lovkrav-bokforingsmotor-juli2026.md", type:"MD", meta:"Lovgrunnlag for bokføringsmotoren" },
+        { name:"ehf-mapping-og-nummerserie.md", type:"MD", meta:"E-fakturaplikt fra 1.1.2027" },
         { name:"app/styles.css", type:"CSS", meta:"Designsystem, lys/mørk" }
       ],
-      notes:"sakflyt.no er DNS-pekt mot GitHub Pages. Tre brukere opprettes med midlertidig passord ved lansering, byttes ved første innlogging.",
+      notes:"sakflyt.no er live på GitHub Pages med Supabase som backend. Fakturamodulene (kunde- og leverandørfakturering) og årsrapport-PDF er i produksjon og brukes. Selve bokføringsmotoren – bilag, hovedbok, MVA-melding, lønn, firehåndsprinsippet – er fortsatt en klikkbar prototype, arkitekturen er bevisst ikke låst ennå.",
       activity:[
-        { person:"thomas", text:"Rad-nivå-sikkerhet ferdigstilt på alle 26 tabeller", when:"i går", tone:"teal" },
-        { person:"dilnawaz", text:"Klikkbar prototype (saksflyt-regnskap.html) delt for tilbakemelding", when:"for 3 dager siden", tone:"teal" },
-        { person:"erik", text:"DNS for sakflyt.no lagt inn hos Domeneshop", when:"for 1 uke siden", tone:"neutral" },
-        { person:"nora", text:"Fire rapportmaler ferdigstilt: årsregnskap, revisjonsgrunnlag, bilagsjournal, prosjektregnskap", when:"for 2 uker siden", tone:"gold" }
+        { person:"thomas", text:"rettet PDF-utskrift i fakturamodulen og la til betalt-status, delbetaling og opplåsing av utstedt faktura", when:"i dag", tone:"teal" },
+        { person:"dilnawaz", text:"Atlas prosjektmodul pushet til main, live på sakflyt.no", when:"i går", tone:"teal" },
+        { person:"nora", text:"Årsrapport som PDF-dokument satt i produksjon", when:"for 3 dager siden", tone:"gold" },
+        { person:"thomas", text:"Faktura generator (fakturering på vegne av leverandører) pushet, migrasjon kjørt i produksjon", when:"for 6 dager siden", tone:"teal" },
+        { person:"thomas", text:"Faktura Studio (utgående faktura) satt live, migrasjon kjørt i produksjon", when:"for 9 dager siden", tone:"teal" },
+        { person:"thomas", text:"Rad-nivå-sikkerhet ferdigstilt på alle tabeller", when:"for 2 uker siden", tone:"teal" }
       ]
     },
 
@@ -117,11 +128,12 @@
       id:"clinica", name:"Clinica Medicare", tone:"red",
       category:"Bemanning · Sykepleiere",
       status:"Henter kapital",
-      summary:"Bemanningsprosjekt som rekrutterer og leier ut sykepleiere til Clinica Medicare.",
+      summary:"Clinica Medicare har drevet i 12 år – nå rebootes klinikken, med et eget bemanningsspor som rekrutterer og leier ut sykepleiere som første satsing.",
       wide:false,
       goal:670000, missing:450000, raised:220000,
       team:["dilnawaz","sara","erik","maria","nora"],
       ideas:[
+        { id:nextId(), title:"Relanseringskampanje: \u00ab12 \u00e5r, ny start\u00bb", person:"nora", note:"Bruk historikken og det kjente navnet aktivt i markedsf\u00f8ringen i stedet for \u00e5 late som klinikken er ny \u2013 12 \u00e5rs drift er tillit, ikke st\u00f8v.", votes:4 },
         { id:nextId(), title:"Samarbeidsavtale med bemanningsbyrå", person:"erik", note:"Supplerer egen rekruttering i oppstartsfasen.", votes:4 },
         { id:nextId(), title:"Rekrutteringskampanje mot sykepleierstudenter", person:"nora", note:"Siste års studenter ved OsloMet og VID.", votes:3 },
         { id:nextId(), title:"Sign-on-bonus for helgevakter", person:"sara", note:"Helg er der bemanningsbehovet er størst.", votes:2 }
@@ -137,25 +149,29 @@
         { id:nextId(), title:"Intervjurunde sykepleiere", person:"sara", status:"pagar" },
         { id:nextId(), title:"Kapitalinnhenting, runde 2", person:"dilnawaz", status:"pagar" },
         { id:nextId(), title:"Avtaleutkast med Clinica Medicare", person:"erik", status:"ferdig" },
-        { id:nextId(), title:"Budsjett satt til 670 000 kr", person:"maria", status:"ferdig" }
+        { id:nextId(), title:"Budsjett satt til 670 000 kr", person:"maria", status:"ferdig" },
+        { id:nextId(), title:"Beslutning: reboot av klinikken etter 12 år", person:"dilnawaz", status:"ferdig" }
       ],
       econ:[
         { label:"Mål", value:kr(670000) },
         { label:"Innhentet", value:kr(220000), tone:"green" },
-        { label:"Mangler", value:kr(450000), tone:"red" }
+        { label:"Mangler", value:kr(450000), tone:"red" },
+        { label:"År i drift før reboot", value:"12 år" }
       ],
       econCategories:["Bemanning","Rekruttering","Administrasjon"],
       files:[
         { name:"Avtaleutkast – Clinica Medicare.pdf", type:"PDF", meta:"Til signering" },
         { name:"Budsjett Clinica Medicare.xlsx", type:"XLS", meta:"Oppdatert denne uken" },
-        { name:"Vaktplan-mal.xlsx", type:"XLS", meta:"Utkast" }
+        { name:"Vaktplan-mal.xlsx", type:"XLS", meta:"Utkast" },
+        { name:"Reboot – posisjonsnotat.md", type:"MD", meta:"12 år, ny start" }
       ],
-      notes:"Mål: første sykepleiere i turnus innen kapitalrunde 2 er lukket.",
+      notes:"12 år gammel klinikk som nå relanseres. Bemanningssporet – egne sykepleiere i fast turnus, ikke innleie fra byrå – er den første konkrete satsingen i rebooten. Historikken og det kjente navnet er fundamentet: en eksisterende pasientbase å bygge relanseringen på, ikke en start fra null. Mål: første sykepleiere i turnus innen kapitalrunde 2 er lukket.",
       activity:[
         { person:"maria", text:"Kapitalrunde 1 fullført – 220 000 kr innhentet", when:"for 2 dager siden", tone:"green" },
         { person:"erik", text:"Avtaleutkast sendt til Clinica Medicare for gjennomgang", when:"for 4 dager siden", tone:"neutral" },
         { person:"sara", text:"Kravspesifikasjon for sykepleierstillinger klar", when:"for 1 uke siden", tone:"blue" },
-        { person:"maria", text:"Budsjett satt til 670 000 kr, mål og milepæler avklart", when:"for 2 uker siden", tone:"neutral" }
+        { person:"maria", text:"Budsjett satt til 670 000 kr, mål og milepæler avklart", when:"for 2 uker siden", tone:"neutral" },
+        { person:"dilnawaz", text:"Besluttet å reboote Clinica Medicare etter 12 års drift, med bemanning som første satsing", when:"for 3 uker siden", tone:"red" }
       ]
     },
 
@@ -170,7 +186,8 @@
       ideas:[
         { id:nextId(), title:"Fastpris-pakker for små bedrifter", person:"erik", note:"Regnskap, IT-drift og support i én avtale.", votes:4 },
         { id:nextId(), title:"Partnerskap med regnskapsbyråer", person:"dilnawaz", note:"De har kundene, vi har den tekniske leveransen.", votes:3 },
-        { id:nextId(), title:"Pilotprosjekt med første eksterne kunde", person:"thomas", note:"Referansecase før salgsmateriell lages.", votes:3 }
+        { id:nextId(), title:"Pilotprosjekt med første eksterne kunde", person:"thomas", note:"Referansecase før salgsmateriell lages.", votes:3 },
+        { id:nextId(), title:"Selg Saksflyt-modulene som eget produkt", person:"dilnawaz", note:"Fakturamodulene og Atlas er allerede bygget internt – de er en reell produktlinje, ikke bare interne verktøy.", votes:4 }
       ],
       tasks:[
         { id:nextId(), title:"Signere utkjøpsavtale med Vidar", person:"dilnawaz", due:"Ferdig", status:"Ferdig" },
@@ -191,9 +208,10 @@
       ],
       files:[
         { name:"Utkjøpsavtale – Vidar.pdf", type:"PDF", meta:"Signert" },
-        { name:"Selskapsavtale Ventures AS.pdf", type:"PDF", meta:"Gjeldende versjon" }
+        { name:"Selskapsavtale Ventures AS.pdf", type:"PDF", meta:"Gjeldende versjon" },
+        { name:"Tjenesteportefølje – utkast.md", type:"MD", meta:"Prisliste under arbeid" }
       ],
-      notes:"Kapitalbehovet på 400 000 kr dekker drift og første ansettelser frem til selskapet har egne kunder.",
+      notes:"Kapitalbehovet på 400 000 kr dekker drift og første ansettelser frem til selskapet har egne kunder. Selskapets første, konkrete leveranse er allerede reell: fakturamodulene og Atlas i Saksflyt-repoet er bygget her – det er fundamentet for tjenesteporteføljen, ikke bare et internt sideprosjekt.",
       activity:[
         { person:"maria", text:"Kapitalbehov satt til 400 000 kr for videre drift", when:"i går", tone:"gold" },
         { person:"dilnawaz", text:"Utkjøp av Vidar gjennomført for 600 000 kr", when:"for 5 dager siden", tone:"neutral" },
@@ -210,9 +228,10 @@
       need:500000, devPct:100,
       competitors:["Cobrief","HYYR","Mercell"],
       integration:"Anbudsradar.no",
-      team:["dilnawaz","thomas","nora","erik","maria"],
+      team:["dilnawaz","thomas","nora","erik","maria","robert","vidaro"],
       ideas:[
         { id:nextId(), title:"Fastpris-abonnement for kommuner", person:"nora", note:"Lavere terskel enn dagens konkurrenter for mindre kommuner.", votes:5 },
+        { id:nextId(), title:"Posisjoner KGV som gjennomføringslaget FOA/Anbudsradar mangler", person:"dilnawaz", note:"Anbudsradar er sterke på varsling (Doffin/TED), men har ikke et fullverdig verktøy for selve konkurransegjennomføringen. Samme integrasjon, komplementært produkt – ikke en frontal krig om samme kunde.", votes:5 },
         { id:nextId(), title:"Integrasjon mot Doffin", person:"thomas", note:"Automatisk henting av kunngjøringer.", votes:4 },
         { id:nextId(), title:"Distribusjonsavtale med Anbudsradar.no", person:"dilnawaz", note:"Bygge videre på eksisterende integrasjon.", votes:4 }
       ],
@@ -226,21 +245,26 @@
         { id:nextId(), title:"Prismodell for kommuner", person:"erik", status:"planlagt" },
         { id:nextId(), title:"Salgsmateriell", person:"nora", status:"pagar" },
         { id:nextId(), title:"Pilotsamtaler med tre kommuner", person:"nora", status:"pagar" },
+        { id:nextId(), title:"Markedsnotat: FOA/Anbudsradar sin forretningsmodell", person:"robert", status:"pagar" },
         { id:nextId(), title:"Kjernefunksjonalitet KGV", person:"thomas", status:"ferdig" },
         { id:nextId(), title:"Integrasjon med Anbudsradar.no", person:"thomas", status:"ferdig" },
         { id:nextId(), title:"Konkurrentanalyse (Cobrief, HYYR, Mercell)", person:"dilnawaz", status:"ferdig" }
       ],
       econ:[
         { label:"Kapitalbehov for lansering", value:kr(500000), tone:"green" },
-        { label:"Utvikling", value:"100 % ferdig" }
+        { label:"Utvikling", value:"100 % ferdig" },
+        { label:"Kunngjøringer overvåket av Anbudsradar (Doffin+TED)", value:"188 000+" },
+        { label:"Historiske tildelinger i Anbudsradars database", value:"70 000+" }
       ],
       files:[
         { name:"KGV Verktøy – produktark.pdf", type:"PDF", meta:"Til salgsmøter" },
         { name:"Konkurrentanalyse.xlsx", type:"XLS", meta:"Cobrief · HYYR · Mercell" },
-        { name:"Integrasjonsdokumentasjon – Anbudsradar.pdf", type:"PDF", meta:"Teknisk" }
+        { name:"Integrasjonsdokumentasjon – Anbudsradar.pdf", type:"PDF", meta:"Teknisk" },
+        { name:"Markedsnotat – Anbudsradar og FOA.md", type:"MD", meta:"Robert Myhre, august 2026" }
       ],
-      notes:"Verktøyet er ferdig utviklet. Kapitalen på 500 000 kr går til salg, markedsføring og onboarding av de første kundene.",
+      notes:"Verktøyet er ferdig utviklet. Kapitalen på 500 000 kr går til salg, markedsføring og onboarding av de første kundene. Anbudsradar.no leveres av FOA (Forum for offentlige anskaffelser) – et kurs- og rådgivningsmiljø innen offentlige anskaffelser, ikke et renkokt SaaS-selskap. Verktøyet overvåker Doffin og TED (188 000+ kunngjøringer), rangerer treff mot kundens profil og gir konkurrentinnsikt fra 70 000+ historiske tildelinger – sterkt på selve varslingen. Prisen oppgis ikke åpent; man må be om tilbud etter en 14-dagers prøveperiode, typisk for en salgsdrevet modell bygget rundt kurs og rådgivning, med verktøyet som tillegg – ikke et fullverdig konkurransegjennomføringsverktøy for selve gjennomføringen, der KGV Verktøy, Cobrief, HYYR og Mercell faktisk konkurrerer. Om FOA/Anbudsradar aktivt henter kapital er ikke noe jeg har funnet bekreftet offentlig, men modellen har typiske trekk av et miljø som ikke er bygget for skala. Det er markedsåpningen: KGV Verktøy er allerede integrert med Anbudsradar.no og kan posisjoneres som gjennomføringslaget de selv ikke har.",
       activity:[
+        { person:"robert", text:"kartla FOA/Anbudsradar sin forretningsmodell – kurs- og rådgivningsdrevet, ikke selvbetjent SaaS", when:"i dag", tone:"green" },
         { person:"thomas", text:"Integrasjon med Anbudsradar.no fullført", when:"for 3 dager siden", tone:"green" },
         { person:"dilnawaz", text:"Konkurrentanalyse av Cobrief, HYYR og Mercell ferdigstilt", when:"for 6 dager siden", tone:"neutral" },
         { person:"nora", text:"Kapitalbehov for lansering satt til 500 000 kr", when:"for 1 uke siden", tone:"gold" },

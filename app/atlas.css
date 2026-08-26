@@ -2,7 +2,45 @@
    Atlas — tillegg til styles.css for prosjektmodulen.
    Egen fil, samme mønster som faktura.css: gjenbruker tokens,
    legger bare til det styles.css ikke allerede dekker.
+
+   Egen identitet: Atlas låner alle flate-, tekst- og statusfarger fra
+   styles.css (samme paper/panel/ink, samme badge-farger), men får en
+   egen aksent — dyp marineblå + murstein — og en Fraunces-overskrift,
+   så prosjektmodulen kjennes som et eget, litt mer "amerikansk"
+   produkt uten å bryte med resten av Saksflyt.
    ===================================================================== */
+
+:root{
+  --atlas-navy:#1B3A63; --atlas-navy-soft:#E7ECF4;
+  --atlas-brick:#B14328; --atlas-brick-soft:#F7E7E2;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --atlas-navy:#8FADE0; --atlas-navy-soft:rgba(143,173,224,.14);
+    --atlas-brick:#E2846A; --atlas-brick-soft:rgba(226,132,106,.16);
+  }
+}
+:root[data-theme="dark"]{
+  --atlas-navy:#8FADE0; --atlas-navy-soft:rgba(143,173,224,.14);
+  --atlas-brick:#E2846A; --atlas-brick-soft:rgba(226,132,106,.16);
+}
+
+.atlas-top .sb-logo{background:var(--atlas-navy)}
+.atlas-top{border-bottom:3px solid var(--atlas-navy)}
+main .eyebrow{color:var(--atlas-brick)}
+.card-head h2, main h1, .atlas-card h3{
+  font-family:"Fraunces","Iowan Old Style",Georgia,serif;font-weight:600;letter-spacing:-.008em
+}
+.atlas-bento .atlas-card .stort, main .tall{font-family:"Fraunces","Iowan Old Style",Georgia,serif;font-weight:580}
+.atlas-bento .wide{position:relative}
+.atlas-bento .wide::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0;
+  background:linear-gradient(90deg,var(--atlas-navy),var(--atlas-brick))
+}
+main .topbar{border-bottom:3px solid var(--atlas-navy);padding-bottom:20px}
+.atlas-card .badge.neutral, main .topbar .badge.neutral{
+  background:var(--atlas-navy-soft);color:var(--atlas-navy);font-weight:700
+}
 
 .atlas-top{
   display:flex;align-items:center;justify-content:space-between;gap:14px;
