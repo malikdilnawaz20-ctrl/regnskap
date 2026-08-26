@@ -29,7 +29,7 @@
   .portal-topp p{color:#A9C7C6;font-size:1.03rem;max-width:52ch;margin:0;line-height:1.6}
 
   .portal-kort{
-    width:min(1240px,100%);margin:-64px auto 0;padding:0 24px 56px;
+    width:min(1240px,100%);margin:-64px auto 0;padding:0 24px 18px;
     display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))
   }
   @media (max-width:900px){.portal-kort{grid-template-columns:1fr;margin-top:-72px}}
@@ -59,6 +59,33 @@
   .produkt:hover .gaa svg{transform:translateX(3px)}
   .produkt.kommer{opacity:.92}
   .produkt.kommer .sirkel{background:var(--hover);color:var(--muted)}
+
+  .verktoy-rad{
+    width:min(1240px,100%);margin:0 auto;padding:0 24px 56px;
+    display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))
+  }
+  .verktoy{
+    display:flex;align-items:center;gap:13px;text-decoration:none;color:inherit;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:13px 15px;transition:border-color .16s,transform .16s
+  }
+  .verktoy:hover{border-color:var(--teal);transform:translateY(-1px)}
+  .verktoy .sirkel{
+    width:34px;height:34px;border-radius:10px;background:var(--teal-soft);color:var(--teal);
+    display:grid;place-items:center;flex:none
+  }
+  .verktoy .sirkel svg{
+    width:17px;height:17px;stroke:currentColor;stroke-width:1.7;fill:none;
+    stroke-linecap:round;stroke-linejoin:round
+  }
+  .verktoy b{display:block;font-size:.93rem;font-weight:650;letter-spacing:-.012em}
+  .verktoy .tekst{display:block;font-size:.8rem;color:var(--muted);line-height:1.5;margin-top:1px}
+  .verktoy .gaa{margin-left:auto;color:var(--teal);flex:none;display:grid;place-items:center}
+  .verktoy .gaa svg{
+    width:15px;height:15px;stroke:currentColor;stroke-width:2.1;fill:none;
+    stroke-linecap:round;stroke-linejoin:round;transition:transform .16s
+  }
+  .verktoy:hover .gaa svg{transform:translateX(3px)}
 
   .portal-bunn{
     margin-top:auto;border-top:1px solid var(--line);padding:26px 24px;
@@ -196,6 +223,17 @@
   </a>
 
 </main>
+
+<div class="verktoy-rad">
+  <a class="verktoy" href="./faktura-generator/">
+    <span class="sirkel"><svg viewBox="0 0 24 24"><path d="M6.4 2.8h11.2v18.4l-2.8-1.7-2.8 1.7-2.8-1.7-2.8 1.7z"/><path d="M9.6 8h4.8M9.6 11.6h4.8"/></svg></span>
+    <div>
+      <b>Faktura generator</b>
+      <span class="tekst">Faktura på vegne av leverandører. Eget oppsett, egen mal og egen nummerserie per leverandør.</span>
+    </div>
+    <span class="gaa"><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
+  </a>
+</div>
 
 <section class="app-band">
   <div class="inni">
