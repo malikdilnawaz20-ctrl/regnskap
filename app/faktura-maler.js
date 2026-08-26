@@ -501,6 +501,49 @@ reg(20,"EHF og offentlig","Strenge felt, referansekrav, KID og giroblokk i bunn.
     '<div class="k" style="margin-top:2mm">'+v.t("Forfall","Due")+'</div><b>'+v.dueStr+'</b></div></div>';
 });
 
+/* ============ 21 Klinikk og bemanning ============ */
+reg(21,"Klinikk og bemanning","Rolig oppsett med vaktoversikt i myke flater. Bemanning, helse og omsorg.",function(v){
+  var rows=v.items.map(function(i){return "<tr><td>"+esc(i.d)+"</td><td class=\"r num\">"+q(i.q)+" "+esc(i.u||v.t("t","hrs"))+
+    "</td><td class=\"r num\">"+v.f(i.p)+"</td><td class=\"r num\">"+v.f(i.sum)+"</td></tr>";}).join("");
+  var timer=v.items.reduce(function(a,b){return a+b.q;},0);
+  return '<div class="band"><div class="cross" aria-hidden="true"></div><div><span class="tag">'+esc(v.title)+'</span>'+
+    '<h1>'+esc(v.seller.name)+'</h1></div>'+
+    '<div class="meta"><div><span>'+v.t("Fakturanr.","Invoice no.")+'</span><b>'+esc(v.number)+'</b></div>'+
+    '<div><span>'+v.t("Dato","Date")+'</span><b>'+v.dateStr+'</b></div>'+
+    '<div><span>'+v.t("Forfall","Due")+'</span><b>'+v.dueStr+'</b></div></div></div>'+
+  '<div class="bd">'+
+  '<div class="who"><div><div class="k">'+v.t("Fakturamottaker","Bill to")+'</div><b>'+esc(v.buyer.name)+'</b><br>'+
+    (v.buyer.att?esc(v.buyer.att)+'<br>':"")+A(v.buyer.addr)+'</div>'+
+    '<div><div class="k">'+v.t("Periode","Period")+'</div>'+esc(v.delivery||v.period)+
+    '<div class="k" style="margin-top:3mm">'+v.t("Vår ref.","Our ref.")+'</div>'+esc(v.ourRef||"—")+'</div></div>'+
+  '<div class="stats"><div><b>'+q(timer)+'</b><span>'+v.t("timer totalt","hours total")+'</span></div>'+
+    '<div><b>'+v.items.length+'</b><span>'+v.t("registrerte vakter","shifts logged")+'</span></div>'+
+    '<div><b>'+v.fc(v.total)+'</b><span>'+v.t("totalbeløp","amount due")+'</span></div></div>'+
+  '<table><thead><tr><th>'+v.t("Ansatt / oppgave","Staff / task")+'</th><th class="r">'+v.t("Timer","Hours")+
+    '</th><th class="r">'+v.t("Timesats","Hourly rate")+'</th><th class="r">'+v.t("Beløp","Amount")+
+    '</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+  '<div class="sum">'+sumDivs(v)+'<div class="tot"><span>'+v.t("Å betale","Total due")+'</span><span class="num">'+v.fc(v.total)+'</span></div></div>'+
+  '<div class="ft"><div>'+esc(payLine(v)||"")+'</div><div>'+esc(v.terms||"")+'</div></div></div>';
+});
+
+/* ============ 22 Medlemskap og kontingent ============ */
+reg(22,"Medlemskap og kontingent","Vennlig kortstil med medlemsnummer og betalingsstubb. Klubb og forening.",function(v){
+  var rows=v.items.map(function(i){return '<div class="it"><div><b>'+esc(i.d)+'</b><small>'+q(i.q)+
+    (i.u?" "+esc(i.u):"")+' × '+v.f(i.p)+'</small></div><div class="num">'+v.f(i.sum)+'</div></div>';}).join("");
+  return '<div class="stripe"></div><div class="bd">'+
+  '<div class="top"><div><span class="k">'+esc(v.seller.name)+'</span><h1>'+esc(v.title)+'</h1></div>'+
+    '<div class="chip">'+esc(v.number)+'</div></div>'+
+  '<div class="who"><div><span class="k">'+v.t("Medlem","Member")+'</span><b>'+esc(v.buyer.name)+'</b>'+
+    (v.buyer.org?'<br><span class="dim">'+v.t("Medlemsnr.","Member no.")+' '+esc(v.buyer.org)+'</span>':"")+'</div>'+
+    '<div><span class="k">'+v.t("Sesong / periode","Season / period")+'</span><b>'+esc(v.delivery||v.period)+'</b></div>'+
+    '<div><span class="k">'+v.t("Forfall","Due")+'</span><b>'+v.dueStr+'</b></div></div>'+
+  '<div class="items">'+rows+'</div>'+
+  '<div class="sum">'+sumDivs(v)+'<div class="tot"><span>'+v.t("Å betale","Total due")+'</span><span class="num">'+v.fc(v.total)+'</span></div></div>'+
+  '<div class="stub"><div class="k">'+v.t("Betalingsinformasjon","Payment details")+'</div>'+
+    (payLine(v)?esc(payLine(v)):esc(v.pay.note||""))+
+    (v.terms?'<div class="note">'+esc(v.terms)+'</div>':"")+'</div></div>';
+});
+
 
 /* =====================================================================
    Visningsmodellen. Alle beløp inn er heltall i øre, slik resten av

@@ -455,3 +455,53 @@
 .inv-20 .giro>div:last-child{border-right:0;background:#f4f6f8}
 .inv-20 .giro b{font-variant-numeric:tabular-nums;font-size:10pt}
 
+/* ---------- 21 Klinikk og bemanning ---------- */
+.inv-21{font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.6pt;color:#1c2b28;line-height:1.5;display:flex;flex-direction:column}
+.inv-21 .band{position:relative;background:var(--acs);border-radius:0 0 5mm 5mm;padding:12mm 18mm 8mm;
+  display:flex;justify-content:space-between;align-items:flex-start;overflow:hidden}
+.inv-21 .band .tag{display:block;font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-bottom:2mm}
+.inv-21 .band h1{margin:0;font-size:17pt;font-weight:650;letter-spacing:-.01em;color:#16211f}
+.inv-21 .band .meta{text-align:right;font-size:8.3pt;color:#3d4a47}
+.inv-21 .band .meta div{margin-bottom:1.6mm}
+.inv-21 .band .meta span{display:block;font-size:7pt;text-transform:uppercase;letter-spacing:.06em;color:#5c6b67}
+.inv-21 .band .meta b{font-variant-numeric:tabular-nums;color:#16211f}
+.inv-21 .cross{position:absolute;right:-6mm;top:-6mm;width:26mm;height:26mm;opacity:.13}
+.inv-21 .cross::before,.inv-21 .cross::after{content:"";position:absolute;background:var(--ac);border-radius:2mm}
+.inv-21 .cross::before{left:11mm;top:2mm;width:4mm;height:22mm}
+.inv-21 .cross::after{left:2mm;top:11mm;width:22mm;height:4mm}
+.inv-21 .bd{padding:9mm 18mm 14mm;display:flex;flex-direction:column;flex:1}
+.inv-21 .who{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-bottom:8mm}
+.inv-21 .k{font-size:7.2pt;text-transform:uppercase;letter-spacing:.08em;color:#5c6b67;margin-bottom:1.5mm}
+.inv-21 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-bottom:8mm}
+.inv-21 .stats div{background:#f4f8f7;border:1px solid #dfe9e6;border-radius:4mm;padding:4mm;text-align:center}
+.inv-21 .stats b{display:block;font-size:14pt;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ac)}
+.inv-21 .stats span{font-size:7.3pt;color:#5c6b67;text-transform:uppercase;letter-spacing:.05em}
+.inv-21 th{font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:#5c6b67;font-weight:600;padding:0 0 2.5mm;border-bottom:1.5px solid #16211f;text-align:left}
+.inv-21 td{padding:3mm 0;border-bottom:1px solid #e3ece9;vertical-align:top}
+.inv-21 .sum{margin-left:auto;width:72mm;margin-top:7mm}
+.inv-21 .sum div{display:flex;justify-content:space-between;padding:1.6mm 0;color:#5c6b67}
+.inv-21 .sum .tot{border-top:1.5px solid #16211f;margin-top:2mm;padding-top:3mm;color:#16211f;font-size:12.5pt;font-weight:700}
+.inv-21 .ft{margin-top:auto;padding-top:8mm;border-top:1px solid #e3ece9;display:grid;grid-template-columns:1fr 1fr;gap:8mm;font-size:8pt;color:#5c6b67}
+
+/* ---------- 22 Medlemskap og kontingent ---------- */
+.inv-22{font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.8pt;color:#232323;display:flex;flex-direction:column}
+.inv-22 .stripe{height:8mm;background:var(--ac)}
+.inv-22 .bd{padding:10mm 16mm 14mm;display:flex;flex-direction:column;flex:1}
+.inv-22 .top{display:flex;justify-content:space-between;align-items:flex-start}
+.inv-22 .top h1{margin:1mm 0 0;font-size:19pt;font-weight:700;letter-spacing:-.015em}
+.inv-22 .top .k{font-size:8pt;color:#79797f;font-weight:600}
+.inv-22 .chip{background:var(--acs);color:var(--ac);border-radius:999px;padding:2.5mm 5mm;font-weight:700;font-size:9pt;font-variant-numeric:tabular-nums;flex:none}
+.inv-22 .who{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;margin-top:8mm}
+.inv-22 .who .k{display:block;font-size:7.3pt;text-transform:uppercase;letter-spacing:.07em;color:#79797f;margin-bottom:1.2mm}
+.inv-22 .who .dim{font-size:8pt;color:#79797f;font-weight:400}
+.inv-22 .items{margin-top:8mm}
+.inv-22 .it{display:flex;justify-content:space-between;align-items:baseline;padding:3mm 0;border-bottom:1px dashed #ddd}
+.inv-22 .it b{font-size:9.6pt;font-weight:600;display:block}
+.inv-22 .it small{font-size:8pt;color:#79797f}
+.inv-22 .it .num{font-variant-numeric:tabular-nums;font-weight:600;flex:none}
+.inv-22 .sum{margin:7mm 0 0 auto;width:70mm}
+.inv-22 .sum div{display:flex;justify-content:space-between;padding:1.6mm 0;color:#79797f}
+.inv-22 .sum .tot{border-top:1.5px solid #232323;margin-top:2mm;padding-top:3mm;color:#232323;font-size:12.5pt;font-weight:700}
+.inv-22 .stub{margin-top:auto;padding-top:6mm;border-top:2px dashed #c9c9cf;font-size:8.3pt;color:#4c4c52}
+.inv-22 .stub .k{font-size:7.3pt;text-transform:uppercase;letter-spacing:.07em;color:#79797f;margin-bottom:1.5mm}
+.inv-22 .stub .note{margin-top:3mm;color:#79797f}
