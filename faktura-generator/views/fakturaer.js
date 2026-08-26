@@ -250,10 +250,12 @@ async function byggRediger() {
   ]);
   if (error) throw error;
 
-  const [{ data: linjer }, { data: kunder }] = await Promise.all([
+  const [{ data: linjer }, { data: kunder }, { data: betalingerData }] = await Promise.all([
     db.from("vendor_invoice_lines").select("*").eq("invoice_id", faktura.id).order("rekkefolge"),
-    db.from("vendor_customers").select("*").eq("vendor_id", faktura.vendor_id).eq("aktiv", true).order("navn")
+    db.from("vendor_customers").select("*").eq("vendor_id", faktura.vendor_id).eq("aktiv", true).order("navn"),
+    db.from("vendor_invoice_payments").select("*").eq("invoice_id", faktura.id).order("dato")
   ]);
+  const betalinger = betalingerData || [];
 
   const erKladd = faktura.status === "kladd";
   const skriv = kanOkonomi() && erKladd;
@@ -444,6 +446,79 @@ async function byggRediger() {
     beskrivelse: erKladd ? "Priser uten avgift. Lagres mens du skriver." : "Fakturaen er utstedt, og linjene er låst.",
     innhold: linjeboks
   }));
+
+  /* ---------- betalinger ---------- */
+  if (faktura.status === "utstedt" || faktura.status === "betalt") {
+    const betalingsboks = el("div", {});
+    venstre.append(kort({
+      tittel: "Betalinger",
+      beskrivelse: "Delbetalinger og forskudd registreres her. Fakturaen markeres betalt automatisk når summen når totalen.",
+      innhold: betalingsboks
+    }));
+
+    function resterende() {
+      const total = faktura.brutto_ore || 0;
+      const sum = betalinger.reduce((s, b) => s + b.belop_ore, 0);
+      return Math.max(0, total - sum);
+    }
+
+    function tegnBetalinger() {
+      const rader = betalinger.map(b => el("tr", {}, [
+        el("td", {}, dato(b.dato)),
+        el("td", { class: "num" }, kr(b.belop_ore) + " " + faktura.valuta),
+        el("td", {}, b.notat || el("span", { class: "sub" }, "—")),
+        el("td", { class: "num" }, !kanOkonomi() ? "" : el("button", {
+          class: "ikonknapp", title: "Angre registreringen",
+          html: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+          onclick: async () => {
+            const ok = await bekreft("Angre denne betalingen?",
+              "Beløpet trekkes fra det betalte totalt igjen. Fakturaen kan gå tilbake til status Sendt.", "Ja, angre");
+            if (!ok) return;
+            try {
+              const { error } = await db.from("vendor_invoice_payments").delete().eq("id", b.id);
+              if (error) throw error;
+              toast("Angret", "Betalingen er fjernet.");
+              paaNytt();
+            } catch (e) { visFeil(e, "Angringen"); }
+          }
+        })
+      ]));
+
+      betalingsboks.replaceChildren(
+        tabell([{ t: "Dato" }, { t: "Beløp", num: true }, { t: "Notat" }, { t: "" }], rader, "Ingen betalinger registrert."),
+        kanOkonomi() ? el("div", { class: "actions" }, [
+          knapp("Registrer betaling", { ikon: "pluss", ved: registrerBetaling })
+        ]) : null,
+        el("dl", { class: "kv" }, [
+          el("dt", {}, "Betalt"), el("dd", {}, kr(faktura.betalt_ore || 0) + " " + faktura.valuta),
+          el("dt", {}, "Resterende"), el("dd", {}, kr(resterende()) + " " + faktura.valuta)
+        ])
+      );
+    }
+
+    async function registrerBetaling() {
+      const svar = await skjemaModal({
+        tittel: "Registrer betaling",
+        beskrivelse: "Legg inn beløpet som er mottatt. Et delbeløp er greit — resten står som resterende til flere betalinger er registrert.",
+        felter: [
+          { navn: "belop", label: "Beløp (" + faktura.valuta + ")", plassholder: kr(resterende()) },
+          { navn: "dato", label: "Dato", type: "date", verdi: iDag() },
+          { navn: "notat", label: "Notat", bredde: "full", plassholder: "Forskudd, delbetaling …" }
+        ],
+        lagreTekst: "Registrer",
+        onLagre: async (d) => {
+          const belop_ore = tilOre(d.belop);
+          if (!belop_ore || belop_ore <= 0) { toast("Mangler beløp", "Skriv inn et beløp større enn null.", true); return false; }
+          const { error } = await db.from("vendor_invoice_payments")
+            .insert({ invoice_id: faktura.id, belop_ore, dato: d.dato || iDag(), notat: d.notat || null });
+          if (error) throw error;
+        }
+      });
+      if (svar) { toast("Registrert", "Betalingen er lagt inn."); paaNytt(); }
+    }
+
+    tegnBetalinger();
+  }
 
   function summer() {
     if (!erKladd) {
@@ -659,35 +734,6 @@ async function byggRediger() {
         toast("Opprettet", "Kreditnotaen ligger som kladd.");
         apneFaktura(data);
       } catch (e) { visFeil(e, "Kreditnotaen"); }
-    } }));
-  }
-
-  if (kanOkonomi() && faktura.status === "utstedt") {
-    handlinger.append(knapp("Merk som betalt", { ikon: "ok", ved: async () => {
-      const ok = await bekreft("Merk fakturaen som betalt?",
-        "Statusen settes til Betalt med dagens dato. Kan angres.",
-        "Ja, betalt");
-      if (!ok) return;
-      try {
-        const { error } = await db.rpc("merk_leverandorfaktura_betalt", { p_faktura: faktura.id });
-        if (error) throw error;
-        toast("Betalt", "Fakturaen er markert som betalt.");
-        paaNytt();
-      } catch (e) { visFeil(e, "Betalingsmarkeringen"); }
-    } }));
-  }
-
-  if (kanOkonomi() && faktura.status === "betalt") {
-    handlinger.append(knapp("Angre betalt", { ikon: "kvittering", ved: async () => {
-      const ok = await bekreft("Angre betalt-markeringen?",
-        "Fakturaen går tilbake til status Sendt.", "Ja, angre");
-      if (!ok) return;
-      try {
-        const { error } = await db.rpc("angre_leverandorfaktura_betalt", { p_faktura: faktura.id });
-        if (error) throw error;
-        toast("Angret", "Fakturaen er satt tilbake til Sendt.");
-        paaNytt();
-      } catch (e) { visFeil(e, "Endringen"); }
     } }));
   }
 
