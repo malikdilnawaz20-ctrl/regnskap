@@ -23,6 +23,12 @@
   body>#fakturautskrift{display:block!important}
   #fakturautskrift .inv{box-shadow:none;width:auto}
   #fakturautskrift .side+.side{break-before:page;page-break-before:always}
+  /* Uten disse strippes bakgrunnsfarger (f.eks. rutenettoverskriften i
+     Eksport & Proforma) fra PDF-en, uansett hva forhåndsvisningen viser. */
+  #fakturautskrift *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+  /* Uten disse kan bokser (deklarasjon, signaturfelt, rutenett) kappes
+     midt i og se ut som de gjentar seg over sideskillet. */
+  #fakturautskrift tr,#fakturautskrift thead{break-inside:avoid;page-break-inside:avoid}
 }
 @page{size:A4;margin:0}
 
@@ -93,24 +99,24 @@
 
 /* ---------- 4 Eksport & Proforma ---------- */
 .inv-4{padding:12mm 12mm;font-family:"Archivo Narrow","Arial Narrow",Arial,Helvetica,sans-serif;font-size:9pt;color:#111}
-.inv-4 .bar{background:var(--ac);color:#fff;padding:3mm 4mm;display:flex;justify-content:space-between;
+.inv-4 .bar{break-inside:avoid;page-break-inside:avoid;background:var(--ac);color:#fff;padding:3mm 4mm;display:flex;justify-content:space-between;
   align-items:center;margin-bottom:0}
 .inv-4 .bar h1{margin:0;font-size:14pt;letter-spacing:.1em;font-weight:700;text-transform:uppercase}
 .inv-4 .bar small{font-size:8pt;opacity:.9;display:block;letter-spacing:.05em}
-.inv-4 .gr{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #111;border-top:0}
+.inv-4 .gr{break-inside:avoid;page-break-inside:avoid;display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #111;border-top:0}
 .inv-4 .gr>div{border-right:1px solid #111;border-bottom:1px solid #111;padding:2mm 3mm;text-align:center}
 .inv-4 .gr>div:nth-child(3n){border-right:0}
 .inv-4 .gr b{display:block;font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:#4a525c;font-weight:700}
 .inv-4 .gr span{font-size:9.5pt;font-weight:700}
-.inv-4 .cons{display:grid;grid-template-columns:1.4fr 1fr;border:1px solid #111;border-top:0;margin-bottom:5mm}
+.inv-4 .cons{break-inside:avoid;page-break-inside:avoid;display:grid;grid-template-columns:1.4fr 1fr;border:1px solid #111;border-top:0;margin-bottom:5mm}
 .inv-4 .cons>div{padding:3mm}
 .inv-4 .cons>div:first-child{border-right:1px solid #111}
 .inv-4 .cons b{font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:#4a525c;display:block;margin-bottom:1.5mm}
 .inv-4 th{background:#f0f2f4;border:1px solid #111;padding:2mm;font-size:8pt;text-transform:uppercase;letter-spacing:.04em}
 .inv-4 td{border:1px solid #111;padding:2mm;vertical-align:top}
 .inv-4 tfoot td{font-weight:700;background:#f0f2f4}
-.inv-4 .decl{margin-top:5mm;border:1px solid #111;padding:3mm;font-size:8.5pt}
-.inv-4 .sig{margin-top:auto;padding-top:14mm;display:grid;grid-template-columns:1fr 1fr;gap:20mm;font-size:8.5pt}
+.inv-4 .decl{break-inside:avoid;page-break-inside:avoid;margin-top:5mm;border:1px solid #111;padding:3mm;font-size:8.5pt}
+.inv-4 .sig{break-inside:avoid;page-break-inside:avoid;margin-top:auto;padding-top:14mm;display:grid;grid-template-columns:1fr 1fr;gap:20mm;font-size:8.5pt}
 .inv-4 .sig div{border-top:1px solid #111;padding-top:1.5mm;text-align:center}
 
 /* ---------- 5 Mørk sidekolonne ---------- */

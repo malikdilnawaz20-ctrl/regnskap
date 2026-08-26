@@ -662,6 +662,35 @@ async function byggRediger() {
     } }));
   }
 
+  if (kanOkonomi() && faktura.status === "utstedt") {
+    handlinger.append(knapp("Merk som betalt", { ikon: "ok", ved: async () => {
+      const ok = await bekreft("Merk fakturaen som betalt?",
+        "Statusen settes til Betalt med dagens dato. Kan angres.",
+        "Ja, betalt");
+      if (!ok) return;
+      try {
+        const { error } = await db.rpc("merk_leverandorfaktura_betalt", { p_faktura: faktura.id });
+        if (error) throw error;
+        toast("Betalt", "Fakturaen er markert som betalt.");
+        paaNytt();
+      } catch (e) { visFeil(e, "Betalingsmarkeringen"); }
+    } }));
+  }
+
+  if (kanOkonomi() && faktura.status === "betalt") {
+    handlinger.append(knapp("Angre betalt", { ikon: "kvittering", ved: async () => {
+      const ok = await bekreft("Angre betalt-markeringen?",
+        "Fakturaen går tilbake til status Sendt.", "Ja, angre");
+      if (!ok) return;
+      try {
+        const { error } = await db.rpc("angre_leverandorfaktura_betalt", { p_faktura: faktura.id });
+        if (error) throw error;
+        toast("Angret", "Fakturaen er satt tilbake til Sendt.");
+        paaNytt();
+      } catch (e) { visFeil(e, "Endringen"); }
+    } }));
+  }
+
   if (kanOkonomi() && !erKladd) {
     handlinger.append(knapp("Lag lik", { ikon: "pluss", ved: () => lagLik(faktura) }));
   }
