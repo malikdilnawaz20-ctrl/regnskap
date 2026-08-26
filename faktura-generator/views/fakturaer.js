@@ -737,6 +737,21 @@ async function byggRediger() {
     } }));
   }
 
+  if (kanOkonomi() && faktura.status === "utstedt") {
+    handlinger.append(knapp("Lås opp", { ikon: "pluss", ved: async () => {
+      const ok = await bekreft("Låse opp fakturaen for redigering?",
+        "Den går tilbake til kladd. Nummeret nullstilles — blir den utstedt igjen, får den et nytt.",
+        "Ja, lås opp");
+      if (!ok) return;
+      try {
+        const { error } = await db.rpc("las_opp_leverandorfaktura", { p_faktura: faktura.id });
+        if (error) throw error;
+        toast("Låst opp", "Fakturaen er en kladd igjen.");
+        paaNytt();
+      } catch (e) { visFeil(e, "Opplåsingen"); }
+    } }));
+  }
+
   if (kanOkonomi() && !erKladd) {
     handlinger.append(knapp("Lag lik", { ikon: "pluss", ved: () => lagLik(faktura) }));
   }
