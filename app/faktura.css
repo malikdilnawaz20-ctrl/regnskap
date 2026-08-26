@@ -1,0 +1,451 @@
+/* =====================================================================
+   Fakturamaler — utskriftsflater, ikke grensesnitt.
+   Samme unntak som rapport.css: et A4-dokument skal ikke arve appens
+   farger, mørk modus eller flater. Klassene her rører ingenting i
+   styles.css, og styles.css rører ingenting her.
+   ===================================================================== */
+
+/* Forhåndsvisning inne i appen */
+.fakturaflate{background:#e9edf1;padding:16px;border-radius:12px;overflow:auto;display:flex;justify-content:center}
+.fakturaflate .inv{box-shadow:0 1px 2px rgba(16,24,32,.08),0 12px 32px rgba(16,24,32,.12);
+  transform-origin:top center;flex:0 0 auto}
+.malvelger{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin}
+.malflis{flex:0 0 auto;border:1px solid var(--kant,#dfe6ec);background:var(--flate,#fff);border-radius:999px;
+  padding:5px 11px;font-size:13px;cursor:pointer;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.malflis .nr{opacity:.55;font-size:11px;font-variant-numeric:tabular-nums}
+.malflis[aria-pressed="true"]{background:var(--aksent,#087F7A);border-color:var(--aksent,#087F7A);color:#fff}
+.malflis[aria-pressed="true"] .nr{opacity:.75}
+
+/* Utskrift: bare fakturaen, ingenting av appen */
+#fakturautskrift{display:none}
+@media print{
+  body>*{display:none!important}
+  body>#fakturautskrift{display:block!important}
+  #fakturautskrift .inv{box-shadow:none;width:auto}
+  #fakturautskrift .side+.side{break-before:page;page-break-before:always}
+}
+@page{size:A4;margin:0}
+
+/* ============ Felles fakturaflate ============ */
+.inv{width:210mm;min-height:297mm;background:#fff;color:#111;position:relative;
+  display:flex;flex-direction:column;font-size:10.5pt;line-height:1.42;overflow:hidden}
+.inv *{box-sizing:border-box}
+.inv table{border-collapse:collapse;width:100%}
+.inv .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.inv .r{text-align:right}.inv .c{text-align:center}
+.inv .grow{flex:1}
+.inv .logo{max-height:18mm;max-width:55mm;object-fit:contain}
+.inv .muted{color:#6b7480}
+
+/* ---------- 1 Nordisk Minimal ---------- */
+.inv-1{padding:22mm 20mm;font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.6pt;color:#1a1f26}
+.inv-1 .hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18mm}
+.inv-1 .t{font-size:26pt;font-weight:300;letter-spacing:-.02em;line-height:1}
+.inv-1 .t em{font-style:normal;color:var(--ac)}
+.inv-1 .meta{text-align:right;font-size:9pt;color:#5b6472}
+.inv-1 .meta b{display:block;color:#1a1f26;font-weight:600;font-variant-numeric:tabular-nums}
+.inv-1 .parties{display:grid;grid-template-columns:1fr 1fr;gap:14mm;margin-bottom:12mm}
+.inv-1 .lbl{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#8b95a3;margin-bottom:3mm}
+.inv-1 .pn{font-weight:600}
+.inv-1 th{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#8b95a3;font-weight:500;
+  padding:0 0 2.5mm;border-bottom:1px solid #1a1f26;text-align:left}
+.inv-1 td{padding:3.2mm 0;border-bottom:1px solid #edf0f3;vertical-align:top}
+.inv-1 .sum{margin-left:auto;width:70mm;margin-top:7mm}
+.inv-1 .sum div{display:flex;justify-content:space-between;padding:1.8mm 0;color:#5b6472}
+.inv-1 .sum .tot{border-top:1px solid #1a1f26;margin-top:2mm;padding-top:3mm;color:#1a1f26;
+  font-size:13pt;font-weight:600}
+.inv-1 .ft{margin-top:auto;padding-top:8mm;border-top:1px solid #edf0f3;display:grid;
+  grid-template-columns:repeat(3,1fr);gap:8mm;font-size:8pt;color:#6b7480}
+
+/* ---------- 2 Ledger ---------- */
+.inv-2{padding:18mm 18mm;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:9.5pt}
+.inv-2 .top2{display:flex;justify-content:space-between;margin-bottom:14mm}
+.inv-2 .t{font-size:19pt;font-weight:600;letter-spacing:-.02em}
+.inv-2 .kv{font-size:9pt}
+.inv-2 .kv div{display:grid;grid-template-columns:32mm 1fr;gap:4mm;margin-bottom:1mm}
+.inv-2 .kv span{color:#6b7480}
+.inv-2 .kv b{font-weight:600;font-variant-numeric:tabular-nums}
+.inv-2 .cols{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-bottom:12mm;font-size:9pt}
+.inv-2 .hero{font-size:16pt;font-weight:600;margin:0 0 3mm}
+.inv-2 .pay{display:inline-block;color:var(--ac);text-decoration:underline;font-size:9.5pt;margin-bottom:12mm}
+.inv-2 th{text-align:left;font-size:8.5pt;font-weight:600;color:#1a1f26;padding-bottom:2mm;border-bottom:1px solid #d8dee5}
+.inv-2 td{padding:3mm 0;border-bottom:1px solid #eef1f4}
+.inv-2 tfoot td{border:0;padding:1.6mm 0;color:#6b7480}
+.inv-2 tfoot tr:last-child td{font-weight:600;color:#111;border-top:1px solid #d8dee5;padding-top:2.5mm}
+.inv-2 .pg{margin-top:auto;text-align:right;font-size:8pt;color:#98a2ad}
+
+/* ---------- 3 Klassisk brevhode ---------- */
+.inv-3{padding:20mm 22mm;font-family:"Source Serif 4",Georgia,"Times New Roman",serif;font-size:10.5pt;color:#20242b}
+.inv-3 .lh{text-align:center;padding-bottom:5mm;border-bottom:2.5px double var(--ac);margin-bottom:9mm}
+.inv-3 .lh h1{margin:0;font-size:17pt;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.inv-3 .lh p{margin:1.5mm 0 0;font-size:8.5pt;color:#5c6470;letter-spacing:.03em}
+.inv-3 .t{text-align:center;font-size:12pt;letter-spacing:.32em;text-transform:uppercase;margin:0 0 8mm}
+.inv-3 .grid{display:grid;grid-template-columns:1fr auto;gap:12mm;margin-bottom:9mm}
+.inv-3 .grid dl{margin:0;display:grid;grid-template-columns:auto auto;gap:1mm 5mm;font-size:9.5pt}
+.inv-3 dt{color:#5c6470}.inv-3 dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.inv-3 th{text-align:left;border-top:1px solid #20242b;border-bottom:1px solid #20242b;
+  padding:2mm 2mm;font-size:9pt;font-variant:small-caps;letter-spacing:.06em}
+.inv-3 td{padding:2.6mm 2mm;border-bottom:1px dotted #c8cdd4}
+.inv-3 .sum{margin:6mm 0 0 auto;width:78mm;font-size:10pt}
+.inv-3 .sum div{display:flex;justify-content:space-between;padding:1.4mm 2mm}
+.inv-3 .sum .tot{border-top:1px solid #20242b;border-bottom:2.5px double #20242b;font-weight:700;margin-top:1mm}
+.inv-3 .ft{margin-top:auto;padding-top:7mm;text-align:center;font-size:8.5pt;color:#5c6470;font-style:italic}
+
+/* ---------- 4 Eksport & Proforma ---------- */
+.inv-4{padding:12mm 12mm;font-family:"Archivo Narrow","Arial Narrow",Arial,Helvetica,sans-serif;font-size:9pt;color:#111}
+.inv-4 .bar{background:var(--ac);color:#fff;padding:3mm 4mm;display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:0}
+.inv-4 .bar h1{margin:0;font-size:14pt;letter-spacing:.1em;font-weight:700;text-transform:uppercase}
+.inv-4 .bar small{font-size:8pt;opacity:.9;display:block;letter-spacing:.05em}
+.inv-4 .gr{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #111;border-top:0}
+.inv-4 .gr>div{border-right:1px solid #111;border-bottom:1px solid #111;padding:2mm 3mm;text-align:center}
+.inv-4 .gr>div:nth-child(3n){border-right:0}
+.inv-4 .gr b{display:block;font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:#4a525c;font-weight:700}
+.inv-4 .gr span{font-size:9.5pt;font-weight:700}
+.inv-4 .cons{display:grid;grid-template-columns:1.4fr 1fr;border:1px solid #111;border-top:0;margin-bottom:5mm}
+.inv-4 .cons>div{padding:3mm}
+.inv-4 .cons>div:first-child{border-right:1px solid #111}
+.inv-4 .cons b{font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:#4a525c;display:block;margin-bottom:1.5mm}
+.inv-4 th{background:#f0f2f4;border:1px solid #111;padding:2mm;font-size:8pt;text-transform:uppercase;letter-spacing:.04em}
+.inv-4 td{border:1px solid #111;padding:2mm;vertical-align:top}
+.inv-4 tfoot td{font-weight:700;background:#f0f2f4}
+.inv-4 .decl{margin-top:5mm;border:1px solid #111;padding:3mm;font-size:8.5pt}
+.inv-4 .sig{margin-top:auto;padding-top:14mm;display:grid;grid-template-columns:1fr 1fr;gap:20mm;font-size:8.5pt}
+.inv-4 .sig div{border-top:1px solid #111;padding-top:1.5mm;text-align:center}
+
+/* ---------- 5 Mørk sidekolonne ---------- */
+.inv-5{flex-direction:row;font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.5pt}
+.inv-5 .rail{width:64mm;background:#161b22;color:#e8ecf1;padding:16mm 10mm;display:flex;flex-direction:column}
+.inv-5 .rail h1{margin:0 0 1mm;font-size:14pt;font-weight:600;letter-spacing:-.01em;color:#fff}
+.inv-5 .rail .ac{width:12mm;height:2.2mm;background:var(--ac);border-radius:2px;margin:5mm 0 7mm}
+.inv-5 .rail p{margin:0 0 4mm;font-size:8.5pt;color:#9aa5b1;line-height:1.55}
+.inv-5 .rail .k{font-size:7pt;letter-spacing:.14em;text-transform:uppercase;color:#5f6b78;margin-bottom:1mm}
+.inv-5 .rail .big{margin-top:auto;font-size:17pt;font-weight:600;color:#fff}
+.inv-5 .main{flex:1;padding:16mm 14mm;display:flex;flex-direction:column}
+.inv-5 .t{font-size:22pt;font-weight:200;letter-spacing:.02em;margin:0 0 8mm}
+.inv-5 .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;margin-bottom:10mm;font-size:8.5pt}
+.inv-5 .meta .k{font-size:7pt;letter-spacing:.12em;text-transform:uppercase;color:#93a0ad}
+.inv-5 .meta b{font-weight:600}
+.inv-5 th{text-align:left;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#93a0ad;
+  font-weight:500;padding-bottom:2mm;border-bottom:1px solid #161b22}
+.inv-5 td{padding:3mm 0;border-bottom:1px solid #eceff2}
+.inv-5 .sum{margin:6mm 0 0 auto;width:64mm}
+.inv-5 .sum div{display:flex;justify-content:space-between;padding:1.5mm 0;color:#5f6b78}
+.inv-5 .sum .tot{background:var(--ac);color:#fff;padding:3mm;border-radius:6px;margin-top:3mm;font-weight:600}
+.inv-5 .ft{margin-top:auto;font-size:8pt;color:#7b8794}
+
+/* ---------- 6 Fargebånd ---------- */
+.inv-6{font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.5pt}
+.inv-6 .band{background:var(--ac);color:#fff;padding:14mm 18mm 11mm;display:flex;justify-content:space-between;align-items:flex-end}
+.inv-6 .band h1{margin:0;font-size:30pt;font-weight:700;letter-spacing:-.03em;line-height:.95}
+.inv-6 .band .co{text-align:right;font-size:8.5pt;line-height:1.5;opacity:.92}
+.inv-6 .band .co b{font-size:11pt;display:block;opacity:1}
+.inv-6 .strip{background:rgba(0,0,0,.14);color:#fff;padding:3mm 18mm;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:6mm;font-size:8pt}
+.inv-6 .strip b{display:block;font-size:10pt;font-weight:600}
+.inv-6 .strip span{opacity:.8;letter-spacing:.08em;text-transform:uppercase;font-size:7pt}
+.inv-6 .bd{padding:12mm 18mm 16mm;display:flex;flex-direction:column;flex:1}
+.inv-6 .to{margin-bottom:9mm}
+.inv-6 .to .k{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#8b95a3}
+.inv-6 th{text-align:left;background:#f4f6f8;padding:2.5mm 3mm;font-size:8pt;text-transform:uppercase;letter-spacing:.06em;color:#4a525c}
+.inv-6 td{padding:3mm;border-bottom:1px solid #eef1f4}
+.inv-6 .sum{margin:7mm 0 0 auto;width:72mm}
+.inv-6 .sum div{display:flex;justify-content:space-between;padding:1.6mm 0}
+.inv-6 .sum .tot{background:var(--ac);color:#fff;padding:3.5mm;font-size:12pt;font-weight:700;margin-top:2mm}
+.inv-6 .ft{margin-top:auto;padding-top:8mm;font-size:8pt;color:#6b7480;border-top:2px solid var(--ac)}
+
+/* ---------- 7 Kompakt kvittering ---------- */
+.inv-7{padding:14mm 0;align-items:center;font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:9pt}
+.inv-7 .slip{width:105mm;border:1px dashed #b9c0c8;padding:10mm 9mm;background:#fff}
+.inv-7 .hd{text-align:center;margin-bottom:6mm}
+.inv-7 .hd h1{margin:0;font-size:12pt;letter-spacing:.2em;text-transform:uppercase}
+.inv-7 .hd p{margin:1mm 0 0;font-size:8pt;color:#5c6470;line-height:1.5}
+.inv-7 .rule{border-top:1px dashed #b9c0c8;margin:4mm 0}
+.inv-7 .kv{display:flex;justify-content:space-between;font-size:8.5pt;padding:.6mm 0}
+.inv-7 .it{display:flex;justify-content:space-between;gap:4mm;padding:1.4mm 0;font-size:8.5pt}
+.inv-7 .it .d{flex:1}
+.inv-7 .it small{display:block;color:#6b7480}
+.inv-7 .tot{display:flex;justify-content:space-between;font-size:12pt;font-weight:700;padding:2mm 0}
+.inv-7 .stamp{text-align:center;margin-top:5mm;font-size:8pt;color:#5c6470;letter-spacing:.1em}
+.inv-7 .bars{margin-top:5mm;height:11mm;background:repeating-linear-gradient(90deg,#111 0 1px,#111 0 2px,#fff 2px 4px,#111 4px 5px,#fff 5px 8px)}
+
+/* ---------- 8 Datatabell ---------- */
+.inv-8{padding:14mm 14mm;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:8.5pt}
+.inv-8 .hd{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:3mm;margin-bottom:5mm}
+.inv-8 .hd h1{margin:0;font-size:15pt;font-weight:700;letter-spacing:-.01em}
+.inv-8 .hd .m{text-align:right;font-size:8pt;line-height:1.6}
+.inv-8 .hd .m b{font-variant-numeric:tabular-nums}
+.inv-8 .three{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;margin-bottom:6mm;font-size:8pt}
+.inv-8 .three .k{font-weight:700;font-size:7.5pt;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:1px solid #ccd2d8;padding-bottom:1mm;margin-bottom:1.5mm;color:#4a525c}
+.inv-8 th{background:#111;color:#fff;text-align:left;padding:1.8mm 2mm;font-size:7.5pt;
+  text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.inv-8 td{padding:1.7mm 2mm;border-bottom:1px solid #e6eaee}
+.inv-8 tbody tr:nth-child(even){background:#f6f8fa}
+.inv-8 .grids{display:grid;grid-template-columns:1fr 78mm;gap:6mm;margin-top:6mm}
+.inv-8 .vt{border:1px solid #ccd2d8;font-size:8pt}
+.inv-8 .vt th{background:#eef1f4;color:#111}
+.inv-8 .vt td{border-bottom:1px solid #e6eaee}
+.inv-8 .sum div{display:flex;justify-content:space-between;padding:1.4mm 2mm;border-bottom:1px solid #e6eaee}
+.inv-8 .sum .tot{background:#111;color:#fff;font-weight:700;font-size:10pt;border:0}
+.inv-8 .ft{margin-top:auto;padding-top:6mm;font-size:7.5pt;color:#6b7480;border-top:1px solid #ccd2d8;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:4mm}
+
+/* ---------- 9 Diagonal aksent ---------- */
+.inv-9{padding:0;font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.5pt}
+.inv-9 .wedge{position:absolute;top:0;right:0;width:120mm;height:70mm;background:var(--ac);
+  clip-path:polygon(28% 0,100% 0,100% 100%);opacity:.13}
+.inv-9 .wedge2{position:absolute;top:0;right:0;width:80mm;height:44mm;background:var(--ac);
+  clip-path:polygon(38% 0,100% 0,100% 100%)}
+.inv-9 .in{position:relative;padding:18mm;display:flex;flex-direction:column;flex:1}
+.inv-9 h1{margin:0 0 1mm;font-size:24pt;font-weight:800;letter-spacing:-.03em}
+.inv-9 .sub{color:#6b7480;font-size:9pt;margin-bottom:14mm}
+.inv-9 .who{display:grid;grid-template-columns:1fr 1fr auto;gap:8mm;margin-bottom:11mm}
+.inv-9 .k{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#98a2ad;margin-bottom:2mm}
+.inv-9 .badge{background:#111;color:#fff;padding:4mm 6mm;border-radius:10px;text-align:right}
+.inv-9 .badge b{display:block;font-size:15pt;font-weight:700}
+.inv-9 .badge span{font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+.inv-9 th{text-align:left;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#98a2ad;
+  padding-bottom:2mm;border-bottom:2px solid #111;font-weight:600}
+.inv-9 td{padding:3.2mm 0;border-bottom:1px solid #eef1f4}
+.inv-9 .sum{margin:7mm 0 0 auto;width:70mm}
+.inv-9 .sum div{display:flex;justify-content:space-between;padding:1.6mm 0;color:#6b7480}
+.inv-9 .sum .tot{color:#111;font-weight:700;font-size:12.5pt;border-top:2px solid #111;padding-top:3mm;margin-top:2mm}
+.inv-9 .ft{margin-top:auto;padding-top:8mm;font-size:8pt;color:#6b7480;display:flex;justify-content:space-between;gap:8mm}
+
+/* ---------- 10 Typografisk XL ---------- */
+.inv-10{padding:20mm;font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.5pt}
+.inv-10 .xl{font-size:52pt;font-weight:800;letter-spacing:-.05em;line-height:.88;color:var(--ac);
+  word-break:break-all;margin-bottom:2mm}
+.inv-10 .xls{font-size:9pt;letter-spacing:.3em;text-transform:uppercase;color:#98a2ad;margin-bottom:16mm}
+.inv-10 .cols{display:grid;grid-template-columns:repeat(4,1fr);gap:6mm;margin-bottom:12mm;font-size:8.5pt}
+.inv-10 .k{font-size:7pt;letter-spacing:.14em;text-transform:uppercase;color:#98a2ad;margin-bottom:2mm}
+.inv-10 .li{display:grid;grid-template-columns:1fr auto;gap:8mm;padding:4mm 0;border-top:1px solid #e6eaee;align-items:baseline}
+.inv-10 .li:last-of-type{border-bottom:1px solid #e6eaee}
+.inv-10 .li b{font-weight:600;font-size:11pt}
+.inv-10 .li small{display:block;color:#6b7480;font-size:8.5pt;margin-top:.8mm}
+.inv-10 .li .amt{font-size:12pt;font-weight:600;font-variant-numeric:tabular-nums}
+.inv-10 .tot{margin-top:9mm;display:flex;justify-content:space-between;align-items:baseline;
+  border-top:3px solid var(--ac);padding-top:4mm}
+.inv-10 .tot span{font-size:9pt;letter-spacing:.2em;text-transform:uppercase;color:#98a2ad}
+.inv-10 .tot b{font-size:24pt;font-weight:800;letter-spacing:-.03em}
+.inv-10 .ft{margin-top:auto;padding-top:10mm;font-size:8pt;color:#6b7480;columns:3;column-gap:8mm}
+
+/* ---------- 11 Split 50/50 ---------- */
+.inv-11{flex-direction:row;font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.5pt}
+.inv-11 .l{width:78mm;padding:18mm 12mm;background:#f5f7f9;display:flex;flex-direction:column;
+  border-right:1px solid #e2e7ec}
+.inv-11 .r2{flex:1;padding:18mm 14mm;display:flex;flex-direction:column}
+.inv-11 h1{margin:0 0 8mm;font-size:19pt;font-weight:700;letter-spacing:-.02em}
+.inv-11 .blk{margin-bottom:7mm;font-size:8.7pt}
+.inv-11 .k{font-size:7pt;letter-spacing:.14em;text-transform:uppercase;color:#8b95a3;margin-bottom:1.5mm}
+.inv-11 .blk b{font-weight:600}
+.inv-11 .due{margin-top:auto;background:#fff;border:1px solid #e2e7ec;border-radius:10px;padding:5mm}
+.inv-11 .due b{display:block;font-size:16pt;font-weight:700;letter-spacing:-.02em;color:var(--ac)}
+.inv-11 th{text-align:left;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#8b95a3;
+  font-weight:600;padding-bottom:2mm;border-bottom:1px solid #111}
+.inv-11 td{padding:3mm 0;border-bottom:1px solid #eef1f4}
+.inv-11 .sum div{display:flex;justify-content:space-between;padding:1.6mm 0;color:#6b7480}
+.inv-11 .sum{margin-top:6mm}
+.inv-11 .sum .tot{color:#111;font-weight:700;font-size:12pt;border-top:1px solid #111;padding-top:3mm;margin-top:1mm}
+.inv-11 .ft{margin-top:auto;font-size:8pt;color:#6b7480}
+
+/* ---------- 12 Opphold & reise ---------- */
+.inv-12{padding:15mm 16mm;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:9pt}
+.inv-12 .hd{display:flex;justify-content:space-between;margin-bottom:9mm}
+.inv-12 .hd h1{margin:0;font-size:16pt;letter-spacing:.16em;text-transform:uppercase;font-weight:400}
+.inv-12 .hd .est{text-align:right;font-size:8pt;line-height:1.5;color:#4a525c}
+.inv-12 .hd .est b{font-size:11pt;color:#111;letter-spacing:.05em;display:block;margin-bottom:1mm}
+.inv-12 .det{border:1px solid #d5dbe1;border-radius:6px;padding:4mm;margin-bottom:7mm;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;font-size:8.5pt}
+.inv-12 .det .k{font-size:7pt;letter-spacing:.1em;text-transform:uppercase;color:#8b95a3}
+.inv-12 th{text-align:left;border-bottom:1.5px solid #111;padding:0 2mm 2mm;font-size:7.5pt;
+  text-transform:uppercase;letter-spacing:.07em;color:#4a525c}
+.inv-12 td{padding:2.4mm 2mm;border-bottom:1px solid #eceff2}
+.inv-12 .totals{margin:5mm 0 0 auto;width:72mm;font-size:9pt}
+.inv-12 .totals div{display:flex;justify-content:space-between;padding:1.3mm 2mm}
+.inv-12 .totals .tot{background:#111;color:#fff;font-weight:700;border-radius:4px;margin-top:1.5mm}
+.inv-12 .vat{margin-top:7mm;width:100%;font-size:8.5pt;border:1px solid #d5dbe1}
+.inv-12 .vat th{background:#f4f6f8;border-bottom:1px solid #d5dbe1;padding:1.8mm 2mm}
+.inv-12 .vat td{padding:1.8mm 2mm;border-bottom:1px solid #eceff2}
+.inv-12 .pay{margin-top:6mm;font-size:8.5pt}
+.inv-12 .pay .k{font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#8b95a3;margin-bottom:1.5mm}
+.inv-12 .ft{margin-top:auto;padding-top:7mm;font-size:7pt;color:#8b95a3;line-height:1.5;text-align:justify}
+
+/* ---------- 13 Timer & prosjekt ---------- */
+.inv-13{padding:16mm;font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.2pt}
+.inv-13 .hd{display:grid;grid-template-columns:1fr auto;gap:10mm;padding-bottom:5mm;
+  border-bottom:1px solid #e2e7ec;margin-bottom:8mm}
+.inv-13 .hd h1{margin:0 0 1mm;font-size:13pt;font-weight:650}
+.inv-13 .per{display:inline-block;background:var(--acs);color:var(--ac);border-radius:999px;
+  padding:1.4mm 4mm;font-size:8pt;font-weight:600}
+.inv-13 .hd .m{text-align:right;font-size:8.5pt;color:#6b7480}
+.inv-13 .hd .m b{color:#111;font-variant-numeric:tabular-nums}
+.inv-13 .who{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-bottom:9mm;font-size:8.7pt}
+.inv-13 .k{font-size:7pt;letter-spacing:.13em;text-transform:uppercase;color:#98a2ad;margin-bottom:1.5mm}
+.inv-13 .proj{margin-bottom:6mm}
+.inv-13 .proj h3{margin:0 0 2mm;font-size:9.5pt;font-weight:650;display:flex;justify-content:space-between;
+  border-left:2.5mm solid var(--ac);padding-left:3mm}
+.inv-13 th{text-align:left;font-size:7.5pt;text-transform:uppercase;letter-spacing:.07em;color:#98a2ad;
+  font-weight:600;padding:0 2mm 1.5mm;border-bottom:1px solid #e2e7ec}
+.inv-13 td{padding:2.2mm;border-bottom:1px solid #f2f5f7}
+.inv-13 tfoot td{font-weight:650;border-top:1px solid #111;border-bottom:0;background:#fafbfc}
+.inv-13 .sum{margin:6mm 0 0 auto;width:74mm;font-size:9.2pt}
+.inv-13 .sum div{display:flex;justify-content:space-between;padding:1.5mm 3mm}
+.inv-13 .sum .tot{background:var(--acs);color:var(--ac);font-weight:700;font-size:11.5pt;border-radius:7px}
+.inv-13 .ft{margin-top:auto;padding-top:8mm;font-size:8pt;color:#6b7480;display:grid;
+  grid-template-columns:1fr 1fr 1fr;gap:6mm}
+
+/* ---------- 14 Kontinental ---------- */
+.inv-14{padding:20mm 22mm 16mm;font-family:"Times New Roman",Times,serif;font-size:10.5pt}
+.inv-14 .sender{font-size:7.5pt;border-bottom:.6px solid #111;padding-bottom:1mm;margin-bottom:14mm;
+  letter-spacing:.02em}
+.inv-14 .addr{margin-bottom:16mm;line-height:1.5}
+.inv-14 .meta{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8mm}
+.inv-14 h1{margin:0;font-size:14pt;font-weight:700}
+.inv-14 .meta dl{margin:0;display:grid;grid-template-columns:auto auto;gap:.6mm 4mm;font-size:9pt}
+.inv-14 dt{color:#4a525c}.inv-14 dd{margin:0;text-align:right}
+.inv-14 .intro{margin-bottom:6mm;font-size:10pt}
+.inv-14 th{text-align:left;border-bottom:1px solid #111;padding:1.5mm 2mm;font-size:9pt;font-weight:700}
+.inv-14 td{padding:2.4mm 2mm;border-bottom:.6px solid #d5dbe1;vertical-align:top}
+.inv-14 .sum{margin:4mm 0 0 auto;width:82mm;font-size:10pt}
+.inv-14 .sum div{display:flex;justify-content:space-between;padding:1.2mm 2mm}
+.inv-14 .sum .tot{border-top:1px solid #111;border-bottom:3px double #111;font-weight:700;margin-top:1mm;padding:2mm}
+.inv-14 .close{margin-top:8mm;font-size:10pt;line-height:1.6}
+.inv-14 .ft{margin-top:auto;padding-top:8mm;border-top:.6px solid #111;font-size:7pt;color:#4a525c;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;line-height:1.5}
+
+/* ---------- 15 Teknisk boks ---------- */
+.inv-15{padding:13mm;font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:8.6pt}
+.inv-15 .b{border:1.2px solid #111;margin-bottom:3mm}
+.inv-15 .b>.bt{background:#111;color:#fff;padding:1.4mm 2.5mm;font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase}
+.inv-15 .b>.bc{padding:3mm}
+.inv-15 .hdgrid{display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+.inv-15 h1{margin:0;font-size:15pt;letter-spacing:.24em;text-transform:uppercase;font-weight:700}
+.inv-15 .kv{display:grid;grid-template-columns:auto 1fr;gap:.8mm 4mm}
+.inv-15 .kv span{color:#5c6470}
+.inv-15 th{text-align:left;border-bottom:1.2px solid #111;padding:1.5mm 2mm;font-size:7.5pt;
+  letter-spacing:.1em;text-transform:uppercase}
+.inv-15 td{padding:1.8mm 2mm;border-bottom:1px dotted #b9c0c8}
+.inv-15 .grid2{display:grid;grid-template-columns:1fr 78mm;gap:3mm;align-items:start}
+.inv-15 .sum div{display:flex;justify-content:space-between;padding:1.2mm 0}
+.inv-15 .sum .tot{border-top:1.2px solid #111;border-bottom:1.2px solid #111;font-weight:700;
+  font-size:11pt;padding:2mm 0;margin-top:1.5mm}
+.inv-15 .ft{margin-top:auto;font-size:7pt;color:#5c6470;letter-spacing:.04em;padding-top:5mm}
+
+/* ---------- 16 Kortstil ---------- */
+.inv-16{padding:16mm;background:linear-gradient(160deg,#f7f9fb 0%,#eef3f7 100%);font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.4pt}
+.inv-16 .card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,32,.06),0 14px 40px rgba(16,24,32,.09);
+  padding:13mm;display:flex;flex-direction:column;flex:1}
+.inv-16 .hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11mm}
+.inv-16 .hd h1{margin:0;font-size:15pt;font-weight:650;letter-spacing:-.02em}
+.inv-16 .pill{background:var(--acs);color:var(--ac);border-radius:999px;padding:1.6mm 4.5mm;
+  font-size:8pt;font-weight:650;display:inline-block;margin-top:2mm}
+.inv-16 .amt{text-align:right}
+.inv-16 .amt b{display:block;font-size:22pt;font-weight:700;letter-spacing:-.03em;line-height:1}
+.inv-16 .amt span{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#98a2ad}
+.inv-16 .who{display:grid;grid-template-columns:1fr 1fr;gap:9mm;margin-bottom:10mm;font-size:8.8pt}
+.inv-16 .k{font-size:7pt;letter-spacing:.13em;text-transform:uppercase;color:#98a2ad;margin-bottom:1.5mm}
+.inv-16 .it{display:grid;grid-template-columns:1fr auto;gap:6mm;padding:3.2mm 0;border-bottom:1px solid #f0f3f6}
+.inv-16 .it small{color:#6b7480;display:block}
+.inv-16 .sum{margin:6mm 0 0 auto;width:70mm}
+.inv-16 .sum div{display:flex;justify-content:space-between;padding:1.5mm 0;color:#6b7480}
+.inv-16 .sum .tot{background:#111;color:#fff;border-radius:9px;padding:3.5mm 4mm;font-weight:650;
+  font-size:11.5pt;margin-top:2.5mm}
+.inv-16 .ft{margin-top:auto;padding-top:8mm;font-size:8pt;color:#8b95a3;display:flex;justify-content:space-between;gap:6mm}
+
+/* ---------- 17 Redaksjonell serif ---------- */
+.inv-17{padding:24mm 26mm;font-family:"Source Serif 4",Georgia,serif;font-size:10.2pt;color:#1c1f24}
+.inv-17 .kicker{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;color:#9aa2ab;margin-bottom:4mm}
+.inv-17 h1{margin:0 0 6mm;font-size:30pt;font-weight:400;letter-spacing:-.02em;line-height:1.05}
+.inv-17 .lead{font-size:11pt;line-height:1.6;color:#4a525c;max-width:110mm;margin-bottom:12mm;
+  padding-bottom:6mm;border-bottom:1px solid #1c1f24}
+.inv-17 .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-bottom:11mm;font-size:9pt}
+.inv-17 .k{font-family:"Inter",Helvetica,Arial,sans-serif;font-size:7pt;letter-spacing:.16em;
+  text-transform:uppercase;color:#9aa2ab;margin-bottom:2mm}
+.inv-17 .it{display:grid;grid-template-columns:1fr auto;gap:8mm;padding:4.5mm 0;border-bottom:1px solid #e4e7ea;align-items:baseline}
+.inv-17 .it b{font-weight:400;font-size:12pt}
+.inv-17 .it small{display:block;font-family:"Inter",Helvetica,sans-serif;font-size:8pt;color:#6b7480;margin-top:1mm}
+.inv-17 .it .amt{font-size:12pt;font-variant-numeric:tabular-nums}
+.inv-17 .tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:7mm;padding-top:4mm;
+  border-top:2px solid #1c1f24}
+.inv-17 .tot span{font-family:"Inter",Helvetica,sans-serif;font-size:8pt;letter-spacing:.16em;text-transform:uppercase;color:#9aa2ab}
+.inv-17 .tot b{font-size:20pt;font-weight:400}
+.inv-17 .ft{margin-top:auto;padding-top:10mm;font-family:"Inter",Helvetica,sans-serif;font-size:7.5pt;
+  color:#6b7480;display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}
+
+/* ---------- 18 Stempel ---------- */
+.inv-18{padding:16mm;font-family:"Courier New",Courier,monospace;font-size:9.4pt;color:#2b2b2b}
+.inv-18 .hd{display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:2px solid #2b2b2b;padding-bottom:4mm;margin-bottom:2mm}
+.inv-18 .hd h1{margin:0;font-size:17pt;letter-spacing:.3em;text-transform:uppercase;font-weight:700}
+.inv-18 .hd .co{text-align:right;font-size:8pt;line-height:1.55}
+.inv-18 .rule2{border-bottom:1px solid #2b2b2b;margin-bottom:8mm}
+.inv-18 .who{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-bottom:8mm;font-size:9pt}
+.inv-18 .k{letter-spacing:.16em;text-transform:uppercase;font-size:7.5pt;color:#6b6b6b;margin-bottom:1.5mm}
+.inv-18 th{text-align:left;padding:1.8mm 2mm;border-bottom:2px solid #2b2b2b;font-size:8pt;
+  letter-spacing:.1em;text-transform:uppercase}
+.inv-18 td{padding:2.2mm 2mm;border-bottom:1px dashed #b9b9b9}
+.inv-18 .sum{margin:5mm 0 0 auto;width:78mm}
+.inv-18 .sum div{display:flex;justify-content:space-between;padding:1.3mm 0}
+.inv-18 .sum .tot{border-top:2px solid #2b2b2b;font-weight:700;font-size:12pt;padding-top:2.5mm;margin-top:1.5mm}
+.inv-18 .stampbox{position:absolute;right:20mm;bottom:52mm;border:3px double var(--ac);color:var(--ac);
+  padding:4mm 7mm;transform:rotate(-11deg);text-align:center;opacity:.85;border-radius:3px}
+.inv-18 .stampbox b{display:block;font-size:15pt;letter-spacing:.24em;font-weight:700}
+.inv-18 .stampbox span{font-size:7.5pt;letter-spacing:.12em}
+.inv-18 .ft{margin-top:auto;padding-top:8mm;border-top:1px solid #2b2b2b;font-size:7.5pt;line-height:1.6}
+
+/* ---------- 19 Bygg & prosjekt ---------- */
+.inv-19{padding:14mm;font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9pt}
+.inv-19 .hd{background:#111;color:#fff;padding:6mm 7mm;display:grid;grid-template-columns:1fr auto;gap:8mm}
+.inv-19 .hd h1{margin:0;font-size:16pt;font-weight:700;letter-spacing:-.01em}
+.inv-19 .hd small{opacity:.7;font-size:8pt;letter-spacing:.1em;text-transform:uppercase}
+.inv-19 .hd .m{text-align:right;font-size:8.5pt}
+.inv-19 .hd .m b{font-variant-numeric:tabular-nums}
+.inv-19 .strip{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid #d5dbe1;border-top:0;margin-bottom:6mm}
+.inv-19 .strip>div{padding:3mm;border-right:1px solid #d5dbe1;font-size:8.2pt}
+.inv-19 .strip>div:last-child{border-right:0}
+.inv-19 .k{font-size:6.8pt;letter-spacing:.12em;text-transform:uppercase;color:#98a2ad;margin-bottom:1mm}
+.inv-19 .who{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-bottom:7mm;font-size:8.7pt}
+.inv-19 th{text-align:left;background:#eef1f4;padding:2mm;font-size:7.5pt;text-transform:uppercase;
+  letter-spacing:.06em;color:#4a525c;border-bottom:1px solid #d5dbe1}
+.inv-19 td{padding:2.4mm 2mm;border-bottom:1px solid #eceff2}
+.inv-19 .prog{height:2.4mm;background:#eceff2;border-radius:2px;overflow:hidden;margin-top:1.2mm}
+.inv-19 .prog i{display:block;height:100%;background:var(--ac)}
+.inv-19 .sum{margin:6mm 0 0 auto;width:80mm;font-size:9pt}
+.inv-19 .sum div{display:flex;justify-content:space-between;padding:1.5mm 2.5mm}
+.inv-19 .sum .neg{color:#a12c24}
+.inv-19 .sum .tot{background:#111;color:#fff;font-weight:700;font-size:11.5pt;margin-top:1.5mm}
+.inv-19 .ft{margin-top:auto;padding-top:7mm;border-top:1px solid #d5dbe1;font-size:7.6pt;color:#6b7480;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:5mm}
+
+/* ---------- 20 EHF / Offentlig ---------- */
+.inv-20{padding:14mm 15mm;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:9pt}
+.inv-20 .hd{display:grid;grid-template-columns:1fr 68mm;gap:6mm;margin-bottom:6mm}
+.inv-20 .hd h1{margin:0 0 1mm;font-size:15pt;font-weight:700;letter-spacing:.02em}
+.inv-20 .hd .co{font-size:8.4pt;line-height:1.5;color:#3c444e}
+.inv-20 .facts{border:1px solid #111}
+.inv-20 .facts div{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #dfe4e9;font-size:8.3pt}
+.inv-20 .facts div:last-child{border-bottom:0}
+.inv-20 .facts span{padding:1.5mm 2mm;color:#5c6470}
+.inv-20 .facts b{padding:1.5mm 2mm;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.inv-20 .who{display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-bottom:6mm}
+.inv-20 .who>div{border:1px solid #dfe4e9;padding:3mm}
+.inv-20 .k{font-size:6.8pt;letter-spacing:.12em;text-transform:uppercase;color:#8b95a3;margin-bottom:1.5mm}
+.inv-20 .refs{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;margin-bottom:6mm;font-size:8.2pt;
+  background:#f4f6f8;padding:3mm;border-radius:4px}
+.inv-20 th{text-align:left;border-top:1px solid #111;border-bottom:1px solid #111;padding:1.8mm 2mm;
+  font-size:7.5pt;text-transform:uppercase;letter-spacing:.05em}
+.inv-20 td{padding:2.2mm 2mm;border-bottom:1px solid #eceff2}
+.inv-20 .grid2{display:grid;grid-template-columns:1fr 76mm;gap:6mm;margin-top:5mm}
+.inv-20 .vt{border:1px solid #dfe4e9;font-size:8pt;width:100%}
+.inv-20 .vt th{background:#f4f6f8;border-top:0;border-bottom:1px solid #dfe4e9;padding:1.5mm 2mm}
+.inv-20 .vt td{padding:1.5mm 2mm}
+.inv-20 .sum div{display:flex;justify-content:space-between;padding:1.4mm 2mm;border-bottom:1px solid #eceff2}
+.inv-20 .sum .tot{border:1.5px solid #111;font-weight:700;font-size:11pt;margin-top:1.5mm}
+.inv-20 .giro{margin-top:auto;border:1px solid #111;display:grid;grid-template-columns:1fr 1fr 46mm;
+  font-size:8pt}
+.inv-20 .giro>div{border-right:1px solid #111;padding:3mm}
+.inv-20 .giro>div:last-child{border-right:0;background:#f4f6f8}
+.inv-20 .giro b{font-variant-numeric:tabular-nums;font-size:10pt}
+

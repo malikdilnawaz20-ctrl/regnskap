@@ -29,8 +29,8 @@
   .portal-topp p{color:#A9C7C6;font-size:1.03rem;max-width:52ch;margin:0;line-height:1.6}
 
   .portal-kort{
-    width:min(1080px,100%);margin:-64px auto 0;padding:0 24px 56px;
-    display:grid;gap:20px;grid-template-columns:repeat(3,1fr)
+    width:min(1240px,100%);margin:-64px auto 0;padding:0 24px 56px;
+    display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))
   }
   @media (max-width:900px){.portal-kort{grid-template-columns:1fr;margin-top:-72px}}
 
@@ -155,6 +155,18 @@
       <li>Regninger godkjennes av to personer før betaling</li>
       <li>Prosjektregnskap for tilskudd, klart til rapportering</li>
       <li>Import av gamle regnskap fra Excel</li>
+    </ul>
+    <span class="gaa">Logg inn <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
+  </a>
+
+  <a class="produkt" href="./app/#/faktura">
+    <span class="sirkel"><svg viewBox="0 0 24 24"><path d="M6.4 2.8h11.2v18.4l-2.8-1.7-2.8 1.7-2.8-1.7-2.8 1.7z"/><path d="M9.6 8h4.8M9.6 11.6h4.8M9.6 15.2h3.2"/></svg></span>
+    <h2>Saksflyt Faktura</h2>
+    <p>Send regning ut, i et oppsett som passer den du sender til. Nummeret tildeles av systemet, og en sendt faktura kan ikke endres i ettertid.</p>
+    <ul>
+      <li>Tjue oppsett — fra eksport og timer til offentlig faktura</li>
+      <li>Feil rettes med kreditnota, ikke ved å endre originalen</li>
+      <li>Betalt faktura blir bilag i regnskapet av seg selv</li>
     </ul>
     <span class="gaa">Logg inn <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
   </a>
