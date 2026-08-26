@@ -481,7 +481,7 @@ async function byggRediger() {
               paaNytt();
             } catch (e) { visFeil(e, "Angringen"); }
           }
-        })
+        }))
       ]));
 
       betalingsboks.replaceChildren(
