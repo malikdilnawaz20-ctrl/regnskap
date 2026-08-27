@@ -9,7 +9,7 @@ import {
   laster, kr, kr0, tilOre, dato, datoKort, iDag, eksporterExcel, lesExcel, velg, db
 } from "../lib.js";
 import { S, kanOkonomi, velgFra, settInn, paaNytt, aarNaa, erAdmin } from "../store.js";
-import { apneArsrapport, apneRevisjonsgrunnlag } from "./rapportmal.js";
+import { apneArsrapport, apneRevisjonsgrunnlag } from "./rapportmal.js?v=20260827-1548";
 
 /* =====================================================================
    Felles hjelpere

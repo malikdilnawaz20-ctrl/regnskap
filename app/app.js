@@ -16,10 +16,10 @@ import {
 } from "./store.js";
 
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
-import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js";
+import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260827-1548";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
 import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";
-import { rapportmalView } from "./views/rapportmal.js";
+import { rapportmalView } from "./views/rapportmal.js?v=20260827-1548";
 import { MERKE } from "./config.js";
 
 /* =====================================================================
