@@ -80,9 +80,17 @@ function vedleggsLenker(vedlegg) {
 function vedleggCelle(t, vedleggMap) {
   const vedlegg = vedleggMap.get(t.id) || [];
   if (vedlegg.length) return vedleggsLenker(vedlegg);
-  if (t.type === "inntekt") return pille("Vedlegg valgfritt", "neutral");
+  if (t.type === "inntekt") return el("span", { class: "dim" }, "—");
   if (t.type === "overforing") return pille("Bankført", "neutral");
   return pille("Mangler vedlegg", "gold");
+}
+
+function erInternOverforing(t) {
+  const kategori = t.categories?.navn || "";
+  const beskrivelse = t.beskrivelse || "";
+  return t.type === "overforing"
+    || kategori === "Overføring internkonto"
+    || /overføring\s+(internkonto|mellom\s+egne\s+kontoer)/i.test(beskrivelse);
 }
 
 function statusTekst(s) {
@@ -102,38 +110,36 @@ export async function hentOkonomiTall() {
   try {
     const aar = aarNaa();
 
-    const { data: okonomi, error: e1 } = await velgFra("v_org_okonomi", "inntekt_ore,utgift_ore,resultat_ore")
-      .eq("regnskapsaar", aar).maybeSingle();
-    if (e1) throw e1;
-
     const { data: kontoer, error: e2 } = await velgFra("accounts", "aapningssaldo_ore");
     if (e2) throw e2;
 
-    const { data: alleTxn, error: e3 } = await velgFra("transactions", "id,type,belop_ore");
+    const { data: alleTxn, error: e3 } = await velgFra("transactions",
+      "id,type,belop_ore,regnskapsaar,beskrivelse,categories(navn)");
     if (e3) throw e3;
 
     const { data: krav, error: e4 } = await velgFra("payment_claims", "belop_ore,betalt_ore,status")
       .not("status", "in", "(betalt,kansellert,fritatt)");
     if (e4) throw e4;
 
-    const { data: aarTxn, error: e5 } = await velgFra("transactions", "id,type").eq("regnskapsaar", aar);
-    if (e5) throw e5;
-
     const { data: vedlegg, error: e6 } = await velgFra("attachments", "transaction_id");
     if (e6) throw e6;
 
+    const synligeTxn = (alleTxn || []).filter(t => !erInternOverforing(t));
+    const aarTxn = synligeTxn.filter(t => t.regnskapsaar === aar);
     const aapning = (kontoer || []).reduce((s, k) => s + (k.aapningssaldo_ore || 0), 0);
-    const bevegelse = (alleTxn || []).reduce((s, t) =>
+    const bevegelse = synligeTxn.reduce((s, t) =>
       s + (t.type === "inntekt" ? t.belop_ore : t.type === "utgift" ? -t.belop_ore : 0), 0);
     const ubetalt = (krav || []).reduce((s, k) => s + Math.max(0, (k.belop_ore || 0) - (k.betalt_ore || 0)), 0);
+    const inntekt_ore = aarTxn.filter(t => t.type === "inntekt").reduce((s, t) => s + t.belop_ore, 0);
+    const utgift_ore = aarTxn.filter(t => t.type === "utgift").reduce((s, t) => s + t.belop_ore, 0);
 
     const harVedlegg = new Set((vedlegg || []).map(v => v.transaction_id));
     const manglerVedlegg = (aarTxn || []).filter(t => t.type === "utgift" && !harVedlegg.has(t.id)).length;
 
     return {
-      inntekt_ore: okonomi?.inntekt_ore || 0,
-      utgift_ore: okonomi?.utgift_ore || 0,
-      resultat_ore: okonomi?.resultat_ore || 0,
+      inntekt_ore,
+      utgift_ore,
+      resultat_ore: inntekt_ore - utgift_ore,
       ubetalt_ore: ubetalt,
       saldo_ore: aapning + bevegelse,
       manglerVedlegg
@@ -162,7 +168,7 @@ async function hentTransaksjoner(filter) {
   }
   const { data, error } = await sp;
   if (error) throw error;
-  return data || [];
+  return (data || []).filter(t => !erInternOverforing(t));
 }
 
 function txnRad(t, vedleggMap) {
