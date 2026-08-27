@@ -579,6 +579,17 @@ async function forside() {
     })
   ]));
 
+  if (S.bruker?.epost === "malik@kampsportlaget.com") {
+    boks.append(kort({
+      tittel: "Dine verktøy",
+      beskrivelse: "Interne verktøy — kun synlig for deg, ikke en del av det organisasjoner ser.",
+      innhold: el("div", { style: "display:flex;gap:10px;flex-wrap:wrap;" }, [
+        knapp("Atlas — Prosjekter", { klasse: "stille sm", ikon: "prosjekt", ved: () => { location.href = "../atlas/"; } }),
+        knapp("Faktura generator", { klasse: "stille sm", ikon: "kvittering", ved: () => { location.href = "../faktura-generator/"; } })
+      ])
+    }));
+  }
+
   return boks;
 }
 
