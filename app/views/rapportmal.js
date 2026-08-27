@@ -22,6 +22,22 @@ import { S, velgFra } from "../store.js";
 const iDagLang = () =>
   new Date().toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" });
 
+function harKontoutskrift(t) {
+  return String(t.bilagsnummer || "").startsWith("FIKEN-")
+    || /^\[Fiken\b/i.test(t.beskrivelse || "");
+}
+
+function erDokumentert(t, medVedlegg) {
+  return medVedlegg.has(t.id) || harKontoutskrift(t) || t.type === "inntekt";
+}
+
+function dokumentasjonTekst(t, medVedlegg) {
+  if (medVedlegg.has(t.id)) return "Vedlagt";
+  if (harKontoutskrift(t)) return "Kontoutskrift";
+  if (t.type === "inntekt") return "Bankført";
+  return "Mangler";
+}
+
 /**
  * Bygger ett ark. Alle rapporter bruker denne.
  *  tittel, ingress, type (vises i brevhodet), periode
@@ -320,7 +336,7 @@ export function beholdning(g, faktiskSaldoOre = null) {
 
 export function standardnoter(g) {
   const { aar, iAar, medVedlegg, laast, kategorier } = g;
-  const utenVedlegg = iAar.filter(t => t.type === "utgift" && !medVedlegg.has(t.id));
+  const utenVedlegg = iAar.filter(t => t.type === "utgift" && !erDokumentert(t, medVedlegg));
   const utenKategori = iAar.filter(t => !t.category_id);
   const foerste = iAar.map(t => t.dato).sort()[0];
   const siste = iAar.map(t => t.dato).sort().slice(-1)[0];
@@ -346,8 +362,8 @@ export function standardnoter(g) {
     {
       tittel: "Dokumentasjon av utgifter",
       tekst: utenVedlegg.length
-        ? `${utenVedlegg.length} av ${iAar.filter(t => t.type === "utgift").length} utgiftsbilag mangler vedlagt kvittering eller faktura. Bokføringsloven krever dokumentasjon for hver utbetaling, og disse bør ettersendes.`
-        : `Samtlige utgiftsbilag i perioden har vedlagt dokumentasjon.`
+        ? `${utenVedlegg.length} av ${iAar.filter(t => t.type === "utgift").length} utgiftsbilag mangler både eget vedlegg og dokumentasjon fra bankimporten. Disse bør kompletteres.`
+        : `Samtlige utgiftsbilag i perioden er dokumentert med eget vedlegg eller kontoutskrift fra bankimporten.`
     },
     {
       tittel: "Merverdiavgift",
@@ -385,7 +401,7 @@ export function bilagsjournal(g, { begrensTil = null } = {}) {
     verdier: [
       navnKat(t.category_id),
       navnPro(t.project_id) || "—",
-      medVedlegg.has(t.id) ? "Ja" : "Nei",
+      dokumentasjonTekst(t, medVedlegg),
       (t.type === "utgift" ? "−" : "") + kr(t.belop_ore)
     ]
   }));
@@ -405,12 +421,12 @@ export function bilagsjournal(g, { begrensTil = null } = {}) {
       kontrollpunkt("Fullstendighet", [
         { tekst: `Journalen viser samtlige ${liste.length} bilag i perioden. Ingen bilag er utelatt eller filtrert bort.` },
         {
-          ok: liste.every(t => medVedlegg.has(t.id) || t.type === "inntekt"),
-          tekst: `${liste.filter(t => t.type === "utgift" && !medVedlegg.has(t.id)).length} utgiftsbilag mangler vedlegg.`
+          ok: liste.every(t => erDokumentert(t, medVedlegg)),
+          tekst: `${liste.filter(t => t.type === "utgift" && !erDokumentert(t, medVedlegg)).length} utgiftsbilag mangler dokumentasjon.`
         }
       ])
     ],
-    "Alle bilag i perioden, sortert på bilagsdato. Kolonnen «Bilag» viser om det ligger kvittering eller faktura vedlagt."
+    "Alle bilag i perioden, sortert på bilagsdato. Kolonnen «Bilag» viser om posten har eget vedlegg, kontoutskrift fra bankimporten eller bankført innbetaling."
   );
 }
 
@@ -452,8 +468,8 @@ export function prosjektregnskap(g, prosjekt) {
               : `Kostnadene overstiger tilsagnet med ${kr(Math.abs(igjen))} kr. Overskytende er dekket av klubbens egne midler.`
           },
           {
-            ok: bilag.every(t => g.medVedlegg.has(t.id) || t.type === "inntekt"),
-            tekst: `${bilag.filter(t => t.type === "utgift" && !g.medVedlegg.has(t.id)).length} av ${bilag.filter(t => t.type === "utgift").length} kostnadsbilag mangler vedlagt dokumentasjon.`
+            ok: bilag.every(t => erDokumentert(t, g.medVedlegg)),
+            tekst: `${bilag.filter(t => t.type === "utgift" && !erDokumentert(t, g.medVedlegg)).length} av ${bilag.filter(t => t.type === "utgift").length} kostnadsbilag mangler dokumentasjon.`
           },
           { tekst: "Samtlige kostnader er ført direkte på prosjektet, ikke fordelt med nøkkel." }
         ])
@@ -490,7 +506,7 @@ export function prosjektregnskap(g, prosjekt) {
           .map(t => ({
             type: "linje", konto: t.bilagsnummer,
             tekst: `${dato(t.dato)}  ${t.beskrivelse}${t.motpart ? " — " + t.motpart : ""}`,
-            verdier: [g.medVedlegg.has(t.id) ? "Ja" : "Nei", kr(t.belop_ore)]
+            verdier: [dokumentasjonTekst(t, g.medVedlegg), kr(t.belop_ore)]
           }))
           .concat([{ type: "sum", tekst: "Sum kostnader", verdier: ["", kr(brukt)] }]),
         { kolonner: ["Bilag", "Beløp"], visKonto: true }
@@ -592,7 +608,7 @@ function aaretIKorteTrekk(g) {
   const andel = (del, hele) => hele ? Math.round((del / hele) * 100) + " %" : "—";
 
   const utbetalinger = g.iAar.filter(t => t.type === "utgift");
-  const utenVedlegg = utbetalinger.filter(t => !g.medVedlegg.has(t.id)).length;
+  const utenVedlegg = utbetalinger.filter(t => !erDokumentert(t, g.medVedlegg)).length;
 
   const medBilag = new Set(g.iAar.map(t => t.project_id).filter(Boolean));
   const prosj = g.prosjekter.filter(p => medBilag.has(p.id));
@@ -606,8 +622,8 @@ function aaretIKorteTrekk(g) {
       : null,
     utbetalinger.length
       ? (utenVedlegg === 0
-        ? `Alle ${utbetalinger.length} utbetalinger i året har vedlegg.`
-        : `${utenVedlegg} av ${utbetalinger.length} utbetalinger mangler vedlegg. Se noten om dokumentasjon.`)
+        ? `Alle ${utbetalinger.length} utbetalinger i året har dokumentasjon.`
+        : `${utenVedlegg} av ${utbetalinger.length} utbetalinger mangler dokumentasjon. Se noten om dokumentasjon.`)
       : null
   ].filter(Boolean);
 
@@ -775,7 +791,7 @@ export function dokumentProsjekt(g, prosjekt) {
 
 export function dokumentRevisor(g) {
   const utgifter = g.iAar.filter(t => t.type === "utgift");
-  const utenVedlegg = utgifter.filter(t => !g.medVedlegg.has(t.id));
+  const utenVedlegg = utgifter.filter(t => !erDokumentert(t, g.medVedlegg));
   const utenKategori = g.iAar.filter(t => !t.category_id);
   const store = [...utgifter].sort((a, b) => b.belop_ore - a.belop_ore).slice(0, 10);
 
@@ -821,7 +837,7 @@ export function dokumentRevisor(g) {
         regnskapstabell(store.map(t => ({
           type: "linje", konto: t.bilagsnummer,
           tekst: `${dato(t.dato)}  ${t.beskrivelse}${t.motpart ? " — " + t.motpart : ""}`,
-          verdier: [g.medVedlegg.has(t.id) ? "Ja" : "Nei", kr(t.belop_ore)]
+          verdier: [dokumentasjonTekst(t, g.medVedlegg), kr(t.belop_ore)]
         })), { kolonner: ["Bilag", "Beløp"], visKonto: true }),
         "Sortert på beløp. Et naturlig utgangspunkt for stikkprøver."
       ),

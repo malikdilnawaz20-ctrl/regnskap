@@ -77,11 +77,20 @@ function vedleggsLenker(vedlegg) {
   ])));
 }
 
+function harKontoutskrift(t) {
+  return String(t.bilagsnummer || "").startsWith("FIKEN-")
+    || /^\[Fiken\b/i.test(t.beskrivelse || "");
+}
+
 function vedleggCelle(t, vedleggMap) {
   const vedlegg = vedleggMap.get(t.id) || [];
-  if (vedlegg.length) return vedleggsLenker(vedlegg);
-  if (t.type === "inntekt") return el("span", { class: "dim" }, "—");
-  if (t.type === "overforing") return pille("Bankført", "neutral");
+  if (vedlegg.length) return el("div", { class: "filelinks" }, [
+    pille("✓ Vedlagt", "green"),
+    vedleggsLenker(vedlegg)
+  ]);
+  if (harKontoutskrift(t)) return pille("✓ Kontoutskrift", "green");
+  if (t.type === "inntekt") return pille("✓ Bankført", "green");
+  if (t.type === "overforing") return pille("✓ Bankført", "green");
   return pille("Mangler vedlegg", "gold");
 }
 
@@ -114,7 +123,7 @@ export async function hentOkonomiTall() {
     if (e2) throw e2;
 
     const { data: alleTxn, error: e3 } = await velgFra("transactions",
-      "id,type,belop_ore,regnskapsaar,beskrivelse,categories(navn)");
+      "id,bilagsnummer,type,belop_ore,regnskapsaar,beskrivelse,categories(navn)");
     if (e3) throw e3;
 
     const { data: krav, error: e4 } = await velgFra("payment_claims", "belop_ore,betalt_ore,status")
@@ -134,7 +143,8 @@ export async function hentOkonomiTall() {
     const utgift_ore = aarTxn.filter(t => t.type === "utgift").reduce((s, t) => s + t.belop_ore, 0);
 
     const harVedlegg = new Set((vedlegg || []).map(v => v.transaction_id));
-    const manglerVedlegg = (aarTxn || []).filter(t => t.type === "utgift" && !harVedlegg.has(t.id)).length;
+    const manglerVedlegg = (aarTxn || []).filter(t =>
+      t.type === "utgift" && !harKontoutskrift(t) && !harVedlegg.has(t.id)).length;
 
     return {
       inntekt_ore,
