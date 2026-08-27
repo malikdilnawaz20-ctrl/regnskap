@@ -505,3 +505,35 @@
 .inv-22 .stub{margin-top:auto;padding-top:6mm;border-top:2px dashed #c9c9cf;font-size:8.3pt;color:#4c4c52}
 .inv-22 .stub .k{font-size:7.3pt;text-transform:uppercase;letter-spacing:.07em;color:#79797f;margin-bottom:1.5mm}
 .inv-22 .stub .note{margin-top:3mm;color:#79797f}
+
+/* ---------- 23 Eksport og produksjon ---------- */
+.inv-23{font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.4pt;color:#20211d;line-height:1.5;
+  display:flex;flex-direction:column;background:#fdfbf6;padding:14mm 16mm 12mm}
+.inv-23 .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8mm;
+  padding-bottom:6mm;border-bottom:2.5px solid var(--ac)}
+.inv-23 .ey{display:block;font-size:7.3pt;letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-bottom:1.8mm}
+.inv-23 .mk h1{margin:0;font-size:16.5pt;font-weight:700;letter-spacing:-.01em;color:#17180f}
+.inv-23 .mk .hs{margin-top:1.5mm;font-family:"JetBrains Mono","SFMono-Regular",Consolas,monospace;font-size:7.6pt;color:#6b6c5e}
+.inv-23 .cn{text-align:right;font-size:8.6pt;color:#4a4b40;max-width:65mm}
+.inv-23 .cn b{display:block;font-size:10.5pt;color:#17180f;margin-bottom:.8mm}
+.inv-23 .tags{display:flex;flex-wrap:wrap;gap:0;margin-top:6mm;border:1px solid #e3e1d3;border-radius:2mm;overflow:hidden}
+.inv-23 .tag{flex:1 1 0;min-width:32mm;padding:3mm 4mm;border-right:1px solid #e3e1d3;background:#f6f4ea}
+.inv-23 .tag:last-child{border-right:none}
+.inv-23 .tag span{display:block;font-size:6.8pt;text-transform:uppercase;letter-spacing:.08em;color:#8a8b78;margin-bottom:1mm}
+.inv-23 .tag b{font-family:"JetBrains Mono","SFMono-Regular",Consolas,monospace;font-size:9.4pt;font-weight:600;color:#17180f;font-variant-numeric:tabular-nums}
+.inv-23 .facts{display:flex;flex-wrap:wrap;gap:6mm;margin-top:5mm}
+.inv-23 .fc span{display:block;font-size:6.8pt;text-transform:uppercase;letter-spacing:.08em;color:#8a8b78;margin-bottom:1mm}
+.inv-23 .fc b{font-size:8.8pt;font-weight:600;color:#20211d}
+.inv-23 table{width:100%;border-collapse:collapse;margin-top:7mm}
+.inv-23 th{font-size:7.2pt;text-transform:uppercase;letter-spacing:.07em;color:#8a8b78;font-weight:700;
+  padding:0 2mm 2.5mm;border-bottom:1.5px solid #20211d;text-align:left}
+.inv-23 td{padding:2.8mm 2mm;border-bottom:1px solid #ece9db;vertical-align:top;font-variant-numeric:tabular-nums}
+.inv-23 td.dim{color:#9a9b89}
+.inv-23 tfoot td{border-bottom:none;padding-top:1.5mm;font-size:7.6pt;color:#8a8b78}
+.inv-23 .sum{margin:6mm 0 0 auto;width:78mm}
+.inv-23 .sum>div{display:flex;justify-content:space-between;align-items:baseline;padding:2mm 0}
+.inv-23 .sum .tot{border-top:1.5px solid #20211d;padding-top:3mm;font-size:12pt;font-weight:700;color:#17180f}
+.inv-23 .sum .adv{font-size:8.6pt;color:#6b6c5e;border-top:1px dashed #d9d6c5;padding-top:2.5mm}
+.inv-23 .sum .bal{font-size:10.5pt;font-weight:700;color:var(--ac)}
+.inv-23 .ft{margin-top:auto;padding-top:8mm;border-top:1px solid #ece9db;display:grid;grid-template-columns:1fr 1fr;
+  gap:8mm;font-size:8pt;color:#4a4b40}

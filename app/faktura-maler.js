@@ -544,6 +544,37 @@ reg(22,"Medlemskap og kontingent","Vennlig kortstil med medlemsnummer og betalin
     (v.terms?'<div class="note">'+esc(v.terms)+'</div>':"")+'</div></div>';
 });
 
+/* ============ 23 Eksport og produksjon ============ */
+reg(23,"Eksport og produksjon","Referansestrip med batch og kolleksjon, forskudd/restbelop i bunn. Tekstil- og produksjonseksport.",function(v){
+  var rows=v.items.map(function(i,idx){return "<tr><td class=\"num dim\">"+(idx+1)+"</td><td>"+esc(i.d)+"</td><td class=\"r num\">"+q(i.q)+
+    (i.u?" "+esc(i.u):"")+"</td><td class=\"r num\">"+v.f(i.p)+"</td><td class=\"r num\">"+v.f(i.sum)+"</td></tr>";}).join("");
+  var tags=[["#",v.number],[v.t("Dato","Dated"),v.dateStr]];
+  if(v.batchNr) tags.push([v.t("Batch","Batch No."),v.batchNr]);
+  if(v.delivery) tags.push([v.t("Levering","Delivery"),v.delivery]);
+  var tagRow=tags.map(function(x){return '<div class="tag"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>';}).join("");
+  var facts=[];
+  if(v.buyer.land) facts.push([v.t("Bestemmelse","Destination"),v.buyer.land]);
+  if(v.collection) facts.push([v.t("Kolleksjon","Collection"),v.collection]);
+  facts.push([v.t("Betalingsvilkår","Payment term"),v.terms||v.t("Forskudd","Advance")]);
+  var factRow=facts.map(function(x){return '<div class="fc"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>';}).join("");
+  var showBal=v.paidOre>0;
+  return '<div class="hd"><div class="mk"><span class="ey">'+esc(v.title)+'</span><h1>'+esc(v.seller.name)+'</h1>'+
+    (v.seller.x&&v.seller.x.hs?'<div class="hs">HS '+esc(v.seller.x.hs)+'</div>':"")+'</div>'+
+    '<div class="cn"><span class="ey">'+v.t("Konsignatar","Consignee")+'</span><b>'+esc(v.buyer.name)+'</b>'+
+    (v.buyer.att?'<br>'+esc(v.buyer.att):"")+(v.buyer.addr.length?'<br>'+A(v.buyer.addr):"")+'</div></div>'+
+  '<div class="tags">'+tagRow+'</div>'+
+  '<div class="facts">'+factRow+'</div>'+
+  '<table><thead><tr><th></th><th>'+v.t("Beskrivelse","Description")+'</th><th class="r">'+v.t("Antall","Qty")+
+    '</th><th class="r">'+v.t("Enhetspris","Unit price")+'</th><th class="r">'+v.t("Beløp","Total")+
+    '</th></tr></thead><tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td colspan="2" class="dim">'+v.qtyTotal+' '+v.t("stk totalt","pcs total")+'</td><td colspan="3"></td></tr></tfoot></table>'+
+  '<div class="sum"><div class="tot"><span>'+v.t("Fakturabeløp","Invoice total")+'</span><span class="num">'+v.fc(v.total)+'</span></div>'+
+    (showBal?('<div class="adv"><span>'+v.t("Mottatt forskudd","Advance received")+'</span><span class="num">'+v.fc(v.paid)+'</span></div>'+
+      '<div class="bal"><span>'+v.t("Restbeløp","Balance due")+'</span><span class="num">'+v.fc(v.balance)+'</span></div>'):"")+'</div>'+
+  '<div class="ft"><div><span class="ey">'+v.t("Betaling","Payment")+'</span>'+esc(payLine(v)||v.pay.note||"")+'</div>'+
+    '<div><span class="ey">'+v.t("Merknad","Note")+'</span>'+esc(v.legal||"")+'</div></div>';
+});
+
 
 /* =====================================================================
    Visningsmodellen. Alle beløp inn er heltall i øre, slik resten av
@@ -595,7 +626,7 @@ export function lagVisning({ faktura, linjer, kunde, org, avsender }) {
     buyer: {
       name: kunde?.navn || "", att: kunde?.att || "",
       addr: (kunde?.adresse || "").split("\n").filter((x) => x.trim()),
-      org: kunde?.orgnr || "", email: kunde?.epost || ""
+      org: kunde?.orgnr || "", email: kunde?.epost || "", land: kunde?.land || ""
     },
     number: faktura.nummer || t("(ikke utstedt)", "(not issued)"),
     date: d, dateStr: dmy(d),
@@ -619,7 +650,10 @@ export function lagVisning({ faktura, linjer, kunde, org, avsender }) {
       ? (faktura.levering_til && faktura.levering_til !== faktura.levering_fra
           ? dmy(new Date(faktura.levering_fra)) + " – " + dmy(new Date(faktura.levering_til))
           : dmy(new Date(faktura.levering_fra)))
-      : "",
+      : (faktura.levering_til ? dmy(new Date(faktura.levering_til)) : ""),
+    batchNr: faktura.batch_nr || "", collection: faktura.kolleksjon || "",
+    paidOre: faktura.betalt_ore || 0, paid: (faktura.betalt_ore || 0) / 100,
+    balance: Math.max(0, (nettoOre + mvaOre - (faktura.betalt_ore || 0)) / 100),
     intro: "", terms: faktura.notat || a.vilkar || "", legal: a.fotnote || "",
     f, fc: (n) => f(n) + " " + valuta, cf: (n) => valuta + " " + f(n)
   };

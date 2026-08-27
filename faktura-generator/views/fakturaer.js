@@ -385,6 +385,30 @@ async function byggRediger() {
       tegnForhaandsvisning();
     });
 
+    const batchFelt = tekstfelt("batch", faktura.batch_nr || "", { placeholder: "F.eks. produksjonens lot-nummer" });
+    batchFelt.disabled = !skriv;
+    batchFelt.addEventListener("change", async () => {
+      faktura.batch_nr = batchFelt.value;
+      await lagre({ batch_nr: batchFelt.value });
+      tegnForhaandsvisning();
+    });
+
+    const kolleksjonFelt = tekstfelt("kolleksjon", faktura.kolleksjon || "", { placeholder: "F.eks. Uniform, SS26" });
+    kolleksjonFelt.disabled = !skriv;
+    kolleksjonFelt.addEventListener("change", async () => {
+      faktura.kolleksjon = kolleksjonFelt.value;
+      await lagre({ kolleksjon: kolleksjonFelt.value });
+      tegnForhaandsvisning();
+    });
+
+    const leveringFelt = el("input", { type: "date", value: faktura.levering_til || "" });
+    leveringFelt.disabled = !skriv;
+    leveringFelt.addEventListener("change", async () => {
+      faktura.levering_til = leveringFelt.value || null;
+      await lagre({ levering_til: leveringFelt.value || null });
+      tegnForhaandsvisning();
+    });
+
     const kundeboks = el("div", {}, [
       merkeFelt("Kunde — mottaker", kundeValg),
       skriv ? el("div", { class: "actions" },
@@ -403,6 +427,14 @@ async function byggRediger() {
       el("div", { class: "grid g2" }, [
         merkeFelt("Valuta", valutaValg),
         merkeFelt("Referanse", refFelt)
+      ]),
+      el("div", { class: "grid g2" }, [
+        merkeFelt("Batch / lot-nummer", batchFelt, "Vises på eksport- og produksjonsmalen"),
+        merkeFelt("Kolleksjon", kolleksjonFelt)
+      ]),
+      el("div", { class: "grid g2" }, [
+        merkeFelt("Leveringsdato", leveringFelt),
+        null
       ])
     );
   }
