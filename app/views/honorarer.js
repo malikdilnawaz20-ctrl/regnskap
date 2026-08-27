@@ -34,7 +34,7 @@ const LEVERANDORPOSTER = new Set([
   "FIKEN-2025-0126", "FIKEN-2025-0127", "FIKEN-2025-0129", "FIKEN-2025-0153", "FIKEN-2025-0154"
 ]);
 
-function erHonorarPdf(fil) { return fil.filnavn?.startsWith("honorarbilag-"); }
+function erHonorarPdf(fil) { return /^honorar(bilag|oppgave)-/.test(fil.filnavn || ""); }
 function mottaker(t) { return HONORAR_NAVN.get(t.bilagsnummer) || t.motpart || ""; }
 function slug(tekst) { return tekst.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 async function hentData(aar) {
@@ -130,13 +130,16 @@ async function lagreHonorarPdf(t, lastNed = false) {
   const navn = mottaker(t);
   if (!navn) throw new Error("Mottaker må avklares før honorarbilaget kan lages.");
   const bytes = await byggHonorarPdf(t);
-  const filnavn = `honorarbilag-${t.bilagsnummer}-${slug(navn)}.pdf`;
+  const filnavn = `honoraroppgave-${t.bilagsnummer}-${slug(navn)}.pdf`;
   const path = `${S.orgId}/${t.id}/${filnavn}`;
-  const { error: lastFeil } = await db.storage.from("bilag").upload(path, new Blob([bytes], { type: "application/pdf" }), { upsert: true, contentType: "application/pdf" });
+  const { error: lastFeil } = await db.storage.from("bilag").upload(path, new Blob([bytes], { type: "application/pdf" }), { upsert: false, contentType: "application/pdf" });
   if (lastFeil) throw lastFeil;
-  const { data: finnes, error: finnFeil } = await velgFra("attachments", "id").eq("transaction_id", t.id).eq("filnavn", filnavn).maybeSingle();
+  const { data: eksisterende, error: finnFeil } = await velgFra("attachments", "id,filnavn").eq("transaction_id", t.id).or("filnavn.like.honorarbilag-%,filnavn.like.honoraroppgave-%").limit(1).maybeSingle();
   if (finnFeil) throw finnFeil;
-  if (!finnes) {
+  if (eksisterende) {
+    const { error } = await db.from("attachments").update({ filnavn, storage_path: path, mime: "application/pdf", storrelse: bytes.length }).eq("organization_id", S.orgId).eq("id", eksisterende.id);
+    if (error) throw error;
+  } else {
     const { error } = await settInn("attachments", { transaction_id: t.id, filnavn, storage_path: path, mime: "application/pdf", storrelse: bytes.length, lastet_opp_av: S.bruker?.id });
     if (error) throw error;
   }
@@ -247,7 +250,7 @@ async function bygg() {
           kpi({ ikon: "dokument", nokkel: "Mangler honorarbilag", verdi: String(utenPdf.length), under: "PDF-er som skal kobles" }),
           kpi({ ikon: "varsel", nokkel: "Må avklares", verdi: String(uklare.length), under: "Ikke klassifisert som honorar" })
         ]),
-        el("div", { class: "note info" }, "Honorarbilaget er intern dokumentasjon av en bankført utbetaling. Skatteplikt, arbeidsgiveravgift og rapportering må vurderes separat."),
+        el("div", { class: "note info" }, "Honoraroppgaven dokumenterer mottaker, beløp og bilagsdato. Eventuell rapportering vurderes separat."),
         kort({ tittel: `Honorarer ${aar}`, beskrivelse: "Bare bekreftede mottakere vises her. PDF-en kobles direkte til transaksjonen.", innhold: tabell(
           [{ t: "Dato" }, { t: "Bilag" }, { t: "Mottaker" }, { t: "Grunnlag" }, { t: "Beløp", num: true }, { t: "Status" }, { t: "" }], bekreftedeRader, "Ingen bekreftede honorarer dette året.") }),
         kort({ tittel: "Utbetalinger som må avklares", beskrivelse: "Disse er ikke honorarer før mottaker og formål er bekreftet.", hoyre: storeRader.length ? knapp("Last ned rapport", { ikon: "dokument", ved: () => byggAvklaringsrapport(storeRader) }) : null, innhold: tabell(
