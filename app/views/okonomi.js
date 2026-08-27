@@ -8,7 +8,7 @@ import {
   el, kpi, svg, kort, stat, pille, tabell, felt, skjemaModal, bekreft, toast, visFeil,
   laster, kr, kr0, tilOre, dato, datoKort, iDag, eksporterExcel, lesExcel, velg, db
 } from "../lib.js";
-import { S, kanOkonomi, velgFra, settInn, paaNytt, aarNaa, erAdmin } from "../store.js";
+import { S, kanOkonomi, velgFra, settInn, paaNytt, aarNaa, erAdmin, erRevisor } from "../store.js";
 import { apneArsrapport, apneRevisjonsgrunnlag } from "./rapportmal.js?v=20260827-1705";
 
 /* =====================================================================
@@ -323,12 +323,15 @@ export const okonomiView = {
     async function lastTabell() {
       tabellHolder.replaceChildren(laster("Henter transaksjoner …"));
       try {
-        const rader = await hentTransaksjoner(filter);
+        const alleRader = await hentTransaksjoner(filter);
+        const rader = erRevisor() ? alleRader.filter(t => !harKontoutskrift(t)) : alleRader;
         const vedleggMap = await hentVedleggMap(rader.map(r => r.id));
         tabellHolder.replaceChildren(tabell(
           [{ t: "Bilag" }, { t: "Dato" }, { t: "Beskrivelse" }, { t: "Kategori" }, { t: "Prosjekt" }, { t: "Beløp", num: true }, { t: "Vedlegg" }],
           rader.map(t => txnRad(t, vedleggMap)),
-          "Ingen transaksjoner funnet for dette filteret."
+          erRevisor()
+            ? "Ingen dokumenterte bilag funnet for dette filteret. Kontoutskrifter fra bankimporten vises ikke med revisortilgang."
+            : "Ingen transaksjoner funnet for dette filteret."
         ));
       } catch (e) {
         visFeil(e, "Henting av transaksjoner");

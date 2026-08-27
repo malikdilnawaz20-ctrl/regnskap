@@ -5,6 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, ER_KONFIGURERT } from "./config.js";
+import { S, erRevisor } from "./store.js";
 
 export const db = ER_KONFIGURERT
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } })
@@ -245,6 +246,10 @@ export async function xlsx() {
 
 /** rader: liste med objekter. Kolonnenavn skal være lesbare for mennesker. */
 export async function eksporterExcel(filnavn, ark) {
+  if (erRevisor()) {
+    toast("Ikke tilgjengelig", "Revisortilgang er skrivebeskyttet i visning \u2014 last ned er sl\u00e5tt av.", true);
+    return;
+  }
   const XLSX = await xlsx();
   const wb = XLSX.utils.book_new();
   for (const [navn, rader] of Object.entries(ark)) {

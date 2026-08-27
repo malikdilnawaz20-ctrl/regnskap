@@ -61,6 +61,9 @@ const HOVEDNAV = [
 const OKONOMI_UNDER = ["attestering", "regnskapsrapporter"];
 const INNST_UNDER = ["selskap", "brukere", "revisjonsspor"];
 
+/** Revisor har kun lesetilgang til tall og bilag \u2014 ingen medlemsdata, ingen innstillinger, ingen eksport. */
+const REVISOR_RUTER = ["oversikt", "okonomi", "regnskapsrapporter", "rapporter", "hjelp", "profil"];
+
 let ruteNaa = "oversikt";
 let okonomiApen = false;
 let innstApen = false;
@@ -107,11 +110,13 @@ function lesRute() {
   const kandidat = del[del.length - 1];
   if (kandidat && RUTER[kandidat]) ruteNaa = kandidat;
   else if (!RUTER[ruteNaa]) ruteNaa = "oversikt";
+  if (erRevisor() && !REVISOR_RUTER.includes(ruteNaa)) ruteNaa = "oversikt";
   if (OKONOMI_UNDER.includes(ruteNaa)) okonomiApen = true;
   if (INNST_UNDER.includes(ruteNaa)) innstApen = true;
 }
 
 function gaTil(rute) {
+  if (erRevisor() && !REVISOR_RUTER.includes(rute)) rute = "oversikt";
   ruteNaa = rute;
   location.hash = "#/" + rute;
   tegn();
@@ -306,30 +311,49 @@ function byggSidepanel() {
     orgvelger
   );
 
+  const revisorTilgang = erRevisor();
+  const okonomiUnderSynlig = revisorTilgang ? OKONOMI_UNDER.filter(u => REVISOR_RUTER.includes(u)) : OKONOMI_UNDER;
+
   for (const g of HOVEDNAV) {
+    const punkterSynlig = revisorTilgang ? g.punkter.filter(id => REVISOR_RUTER.includes(id)) : g.punkter;
+    if (!punkterSynlig.length) continue;
     const boks = el("div", { class: "sb-group" });
     if (g.gruppe) boks.append(el("h4", {}, g.gruppe));
-    for (const id of g.punkter) {
+    for (const id of punkterSynlig) {
       boks.append(punkt(id));
-      if (id === "okonomi") {
+      if (id === "okonomi" && okonomiUnderSynlig.length) {
         boks.append(el("button", {
           class: "sb-item", style: "padding-top:4px;padding-bottom:4px;font-size:.8rem",
           onclick: () => { okonomiApen = !okonomiApen; tegn(); }
         }, [el("span", { html: svg("ned"), style: okonomiApen ? "" : "transform:rotate(-90deg);display:inline-flex" }), okonomiApen ? "Skjul detaljer" : "Mer i økonomi"]));
         if (okonomiApen) {
-          boks.append(el("div", { class: "sb-sub" }, OKONOMI_UNDER.map(u => punkt(u))));
+          boks.append(el("div", { class: "sb-sub" }, okonomiUnderSynlig.map(u => punkt(u))));
         }
       }
     }
     nav.append(boks);
   }
 
+  if (S.bruker?.epost === "malik@kampsportlaget.com") {
+    const eierBoks = el("div", { class: "sb-group" });
+    eierBoks.append(el("h4", {}, "Dine verktøy"));
+    eierBoks.append(el("button", {
+      class: "sb-item", onclick: () => { location.href = "../atlas/"; }
+    }, [el("span", { html: svg("prosjekt") }), "Atlas — Prosjekter"]));
+    eierBoks.append(el("button", {
+      class: "sb-item", onclick: () => { location.href = "../faktura-generator/"; }
+    }, [el("span", { html: svg("kvittering") }), "Faktura generator"]));
+    nav.append(eierBoks);
+  }
+
   const bunn = el("div", { class: "sb-bunn" });
-  bunn.append(el("button", {
-    class: "sb-item" + (["innstillinger", ...INNST_UNDER].includes(ruteNaa) ? " on" : ""),
-    onclick: () => { innstApen = !innstApen; gaTil("innstillinger"); }
-  }, [el("span", { html: svg("innstilling") }), "Innstillinger"]));
-  if (innstApen) bunn.append(el("div", { class: "sb-sub" }, INNST_UNDER.map(u => punkt(u))));
+  if (!revisorTilgang) {
+    bunn.append(el("button", {
+      class: "sb-item" + (["innstillinger", ...INNST_UNDER].includes(ruteNaa) ? " on" : ""),
+      onclick: () => { innstApen = !innstApen; gaTil("innstillinger"); }
+    }, [el("span", { html: svg("innstilling") }), "Innstillinger"]));
+    if (innstApen) bunn.append(el("div", { class: "sb-sub" }, INNST_UNDER.map(u => punkt(u))));
+  }
   bunn.append(punkt("hjelp"));
   const appPunkt = installerPunkt();
   if (appPunkt) bunn.append(appPunkt);
@@ -384,6 +408,12 @@ function byggMobilnav() {
   const p = (id, tekst) => el("button", {
     class: ruteNaa === id ? "on" : "", onclick: () => gaTil(id)
   }, [el("span", { html: svg(RUTER[id].ikon) }), tekst]);
+  if (erRevisor()) {
+    return el("nav", { class: "mobilnav" }, [
+      p("oversikt", "Oversikt"), p("okonomi", "Bilag"),
+      p("regnskapsrapporter", "Regnskap"), p("rapporter", "Rapporter"), p("hjelp", "Hjelp")
+    ]);
+  }
   return el("nav", { class: "mobilnav" }, [
     p("oversikt", "Oversikt"), p("medlemmer", "Medlemmer"),
     p("okonomi", "Økonomi"), p("betalinger", "Betaling"), p("innstillinger", "Mer")
