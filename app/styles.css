@@ -263,6 +263,11 @@ h3{margin:0;font-size:.95rem;font-weight:640;letter-spacing:-.01em}
 .btn.danger:hover{background:var(--red-soft)}
 .btn.sm{padding:6px 11px;font-size:.8rem;border-radius:9px}
 .btn.sm svg{width:14px;height:14px}
+.filelinks{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.filelink{max-width:260px;justify-content:flex-start;min-width:0}
+.filelink-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bilag-dokumentasjon{grid-column:1/-1;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.bilag-dokumentasjon>.filelinks{margin-top:8px}
 .btn.big{
   padding:15px 17px;border-radius:var(--r);font-size:.92rem;
   display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left

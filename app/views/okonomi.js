@@ -41,11 +41,48 @@ async function hentKontoer() {
   return data || [];
 }
 
-async function hentVedleggsSet(ids) {
-  if (!ids || !ids.length) return new Set();
-  const { data, error } = await velgFra("attachments", "transaction_id").in("transaction_id", ids);
+async function hentVedleggMap(ids) {
+  const map = new Map();
+  if (!ids || !ids.length) return map;
+  const { data, error } = await velgFra("attachments", "id,transaction_id,filnavn,storage_path,mime,storrelse,opprettet")
+    .in("transaction_id", ids)
+    .order("opprettet", { ascending: true });
   if (error) throw error;
-  return new Set((data || []).map(a => a.transaction_id));
+  for (const vedlegg of data || []) {
+    const liste = map.get(vedlegg.transaction_id) || [];
+    liste.push(vedlegg);
+    map.set(vedlegg.transaction_id, liste);
+  }
+  return map;
+}
+
+async function apneVedlegg(vedlegg) {
+  try {
+    const { data, error } = await db.storage.from("bilag").createSignedUrl(vedlegg.storage_path, 60);
+    if (error) throw error;
+    window.open(data.signedUrl, "_blank", "noopener");
+  } catch (e) {
+    visFeil(e, "Åpning av vedlegg");
+  }
+}
+
+function vedleggsLenker(vedlegg) {
+  return el("div", { class: "filelinks" }, vedlegg.map(fil => el("button", {
+    class: "btn stille sm filelink",
+    title: "Åpne " + fil.filnavn,
+    onclick: e => { e.stopPropagation(); apneVedlegg(fil); }
+  }, [
+    el("span", { html: svg("dokument") }),
+    el("span", { class: "filelink-name" }, fil.filnavn)
+  ])));
+}
+
+function vedleggCelle(t, vedleggMap) {
+  const vedlegg = vedleggMap.get(t.id) || [];
+  if (vedlegg.length) return vedleggsLenker(vedlegg);
+  if (t.type === "inntekt") return pille("Vedlegg valgfritt", "neutral");
+  if (t.type === "overforing") return pille("Bankført", "neutral");
+  return pille("Mangler vedlegg", "gold");
 }
 
 function statusTekst(s) {
@@ -79,7 +116,7 @@ export async function hentOkonomiTall() {
       .not("status", "in", "(betalt,kansellert,fritatt)");
     if (e4) throw e4;
 
-    const { data: aarTxn, error: e5 } = await velgFra("transactions", "id").eq("regnskapsaar", aar);
+    const { data: aarTxn, error: e5 } = await velgFra("transactions", "id,type").eq("regnskapsaar", aar);
     if (e5) throw e5;
 
     const { data: vedlegg, error: e6 } = await velgFra("attachments", "transaction_id");
@@ -91,7 +128,7 @@ export async function hentOkonomiTall() {
     const ubetalt = (krav || []).reduce((s, k) => s + Math.max(0, (k.belop_ore || 0) - (k.betalt_ore || 0)), 0);
 
     const harVedlegg = new Set((vedlegg || []).map(v => v.transaction_id));
-    const manglerVedlegg = (aarTxn || []).filter(t => !harVedlegg.has(t.id)).length;
+    const manglerVedlegg = (aarTxn || []).filter(t => t.type === "utgift" && !harVedlegg.has(t.id)).length;
 
     return {
       inntekt_ore: okonomi?.inntekt_ore || 0,
@@ -128,7 +165,7 @@ async function hentTransaksjoner(filter) {
   return data || [];
 }
 
-function txnRad(t, harVedlegg) {
+function txnRad(t, vedleggMap) {
   return el("tr", { class: "klikk", onclick: () => apneBilag(t.id) }, [
     el("td", { class: "mono" }, t.bilagsnummer),
     el("td", {}, datoKort(t.dato)),
@@ -139,7 +176,7 @@ function txnRad(t, harVedlegg) {
     el("td", {}, t.categories?.navn || "—"),
     el("td", {}, t.projects?.navn || "—"),
     el("td", { class: "num" }, (t.type === "utgift" ? "− " : "") + kr(t.belop_ore)),
-    el("td", {}, harVedlegg.has(t.id) ? pille("Vedlagt", "green") : pille("Mangler vedlegg", "gold"))
+    el("td", {}, vedleggCelle(t, vedleggMap))
   ]);
 }
 
@@ -149,9 +186,34 @@ async function apneBilag(id) {
     const { data: t, error } = await velgFra("transactions", "*").eq("id", id).single();
     if (error) throw error;
 
-    const [kategorier, kontoer, prosjekter] = await Promise.all([
-      hentKategorier(t.type), hentKontoer(), hentProsjekter()
+    const [kategorier, kontoer, prosjekter, vedleggMap] = await Promise.all([
+      hentKategorier(t.type), hentKontoer(), hentProsjekter(), hentVedleggMap([id])
     ]);
+
+    const dokumentasjonHolder = el("div", { class: "bilag-dokumentasjon" });
+    const tegnDokumentasjon = async (map = null) => {
+      const gjeldende = map || await hentVedleggMap([id]);
+      const vedlegg = gjeldende.get(id) || [];
+      dokumentasjonHolder.replaceChildren(
+        el("div", { class: "between" }, [
+          el("div", {}, [
+            el("b", {}, "Dokumentasjon"),
+            el("span", { class: "who" }, vedlegg.length
+              ? `${vedlegg.length} ${vedlegg.length === 1 ? "fil" : "filer"}`
+              : t.type === "inntekt" ? "Valgfritt for innbetalinger" : "Ingen fil vedlagt")
+          ]),
+          el("button", {
+            class: "btn sm",
+            onclick: async () => {
+              const lastetOpp = await lastOppKvittering(id);
+              if (lastetOpp) await tegnDokumentasjon();
+            }
+          }, [el("span", { html: svg("last") }), "Last opp"])
+        ]),
+        vedlegg.length ? vedleggsLenker(vedlegg) : null
+      );
+    };
+    await tegnDokumentasjon(vedleggMap);
 
     const resultat = await skjemaModal({
       tittel: "Bilag " + t.bilagsnummer,
@@ -166,6 +228,7 @@ async function apneBilag(id) {
         { navn: "project_id", label: "Prosjekt", type: "select", verdi: t.project_id || "", valg: [{ verdi: "", tekst: "— Ingen —" }, ...prosjekter.map(p => ({ verdi: p.id, tekst: p.navn }))] },
         { navn: "account_id", label: "Konto", type: "select", verdi: t.account_id || "", valg: kontoer.map(k => ({ verdi: k.id, tekst: k.navn })) }
       ],
+      ekstra: dokumentasjonHolder,
       onLagre: async (data) => {
         const belop_ore = tilOre(data.belop);
         if (!(belop_ore > 0)) { toast("Kan ikke lagre", "Beløpet må være større enn null.", true); return false; }
@@ -245,10 +308,10 @@ export const okonomiView = {
       tabellHolder.replaceChildren(laster("Henter transaksjoner …"));
       try {
         const rader = await hentTransaksjoner(filter);
-        const harVedlegg = await hentVedleggsSet(rader.map(r => r.id));
+        const vedleggMap = await hentVedleggMap(rader.map(r => r.id));
         tabellHolder.replaceChildren(tabell(
           [{ t: "Bilag" }, { t: "Dato" }, { t: "Beskrivelse" }, { t: "Kategori" }, { t: "Prosjekt" }, { t: "Beløp", num: true }, { t: "Vedlegg" }],
-          rader.map(t => txnRad(t, harVedlegg)),
+          rader.map(t => txnRad(t, vedleggMap)),
           "Ingen transaksjoner funnet for dette filteret."
         ));
       } catch (e) {
@@ -327,8 +390,13 @@ async function tilbyKvitteringsopplasting(transaksjonsId) {
   );
   if (!vilLaste) return;
 
+  const lastetOpp = await lastOppKvittering(transaksjonsId);
+  if (lastetOpp) paaNytt();
+}
+
+async function lastOppKvittering(transaksjonsId) {
   const fil = await velgFil();
-  if (!fil) return;
+  if (!fil) return false;
 
   try {
     const sti = `${S.orgId}/${transaksjonsId}/${fil.name}`;
@@ -346,13 +414,14 @@ async function tilbyKvitteringsopplasting(transaksjonsId) {
     if (radfeil) throw radfeil;
 
     toast("Kvittering lastet opp", fil.name);
-    paaNytt();
+    return true;
   } catch (e) {
     toast(
       "Opplasting av kvittering feilet",
       "Bilaget er lagret, men kvitteringen kunne ikke lastes opp. Prøv igjen fra bilaget. (" + (e?.message || "ukjent feil") + ")",
       true
     );
+    return false;
   }
 }
 
@@ -530,7 +599,7 @@ async function visProsjektDetalj(rot, id) {
     if (e2) throw e2;
 
     const idListe = (bilag || []).map(t => t.id);
-    const harVedlegg = await hentVedleggsSet(idListe);
+    const vedleggMap = await hentVedleggMap(idListe);
 
     const sumPerKategori = new Map();
     for (const t of bilag || []) {
@@ -581,7 +650,7 @@ async function visProsjektDetalj(rot, id) {
           el("td", {}, [el("span", {}, t.beskrivelse), t.motpart ? el("span", { class: "who" }, t.motpart) : null]),
           el("td", {}, t.categories?.navn || "—"),
           el("td", { class: "num" }, (t.type === "utgift" ? "− " : "") + kr(t.belop_ore)),
-          el("td", {}, harVedlegg.has(t.id) ? pille("Vedlagt", "green") : pille("Mangler vedlegg", "gold"))
+          el("td", {}, vedleggCelle(t, vedleggMap))
         ])),
         "Ingen bilag registrert på dette prosjektet ennå."
       )
