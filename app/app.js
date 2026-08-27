@@ -16,10 +16,11 @@ import {
 } from "./store.js";
 
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
-import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260827-1548";
+import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260827-1705";
+import { honorarerView } from "./views/honorarer.js?v=20260827-1705";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
 import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";
-import { rapportmalView } from "./views/rapportmal.js?v=20260827-1548";
+import { rapportmalView } from "./views/rapportmal.js?v=20260827-1705";
 import { MERKE } from "./config.js";
 
 /* =====================================================================
@@ -34,6 +35,7 @@ const RUTER = {
   familier:    { tittel: "Familier", ikon: "medlemmer", view: () => familierView, skjult: true },
   betalinger:  { tittel: "Betalinger", ikon: "betaling", view: () => kontingentView },
   okonomi:     { tittel: "Økonomi", ikon: "okonomi", view: () => okonomiView },
+  honorarer:   { tittel: "Honorarer", ikon: "betaling", view: () => honorarerView },
   attestering: { tittel: "Attestering", ikon: "ok", view: () => attesteringView, under: "okonomi" },
   faktura:     { tittel: "Faktura", ikon: "kvittering", view: () => fakturaView },
   kunder:      { tittel: "Kunder", ikon: "medlemmer", view: () => kunderView, under: "faktura" },
@@ -52,7 +54,7 @@ const RUTER = {
 const HOVEDNAV = [
   { gruppe: null, punkter: ["oversikt"] },
   { gruppe: "Klubben", punkter: ["medlemmer", "aktiviteter", "betalinger"] },
-  { gruppe: "Penger", punkter: ["okonomi", "faktura", "prosjekter", "rapporter"] },
+  { gruppe: "Penger", punkter: ["okonomi", "honorarer", "faktura", "prosjekter", "rapporter"] },
   { gruppe: "Arkiv", punkter: ["dokumenter"] }
 ];
 
