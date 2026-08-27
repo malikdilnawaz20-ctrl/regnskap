@@ -37,8 +37,6 @@ const LEVERANDORPOSTER = new Set([
 function erHonorarPdf(fil) { return fil.filnavn?.startsWith("honorarbilag-"); }
 function mottaker(t) { return HONORAR_NAVN.get(t.bilagsnummer) || t.motpart || ""; }
 function slug(tekst) { return tekst.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
-function brukerNavn() { return [S.bruker?.fornavn, S.bruker?.etternavn].filter(Boolean).join(" ") || S.bruker?.epost || "Ukjent bruker"; }
-
 async function hentData(aar) {
   const [{ data: txn, error }, { data: vedlegg, error: vedleggFeil }, { data: kategorier, error: kategoriFeil }] = await Promise.all([
     velgFra("transactions", "id,bilagsnummer,dato,type,beskrivelse,belop_ore,motpart,category_id,konto_nummer,regnskapsaar,categories(navn)")
@@ -88,36 +86,43 @@ function skrivLinjer(page, font, tekst, x, y, bredde, storrelse = 10, linje = 15
 async function byggHonorarPdf(t) {
   const { PDFDocument, StandardFonts, rgb } = await pdfVerktoy();
   const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595.28, 841.89]);
+  const page = pdf.addPage([419.53, 595.28]);
   const normal = await pdf.embedFont(StandardFonts.Helvetica);
   const fet = await pdf.embedFont(StandardFonts.HelveticaBold);
   const navy = rgb(0.04, 0.17, 0.2), teal = rgb(0.03, 0.5, 0.47), graa = rgb(0.42, 0.46, 0.49);
   const navn = mottaker(t), org = S.org || {};
-  page.drawRectangle({ x: 0, y: 770, width: 595.28, height: 72, color: navy });
-  page.drawText("HONORARBILAG", { x: 42, y: 801, size: 22, font: fet, color: rgb(1, 1, 1) });
-  page.drawText(`HB-${t.bilagsnummer}`, { x: 42, y: 782, size: 9, font: normal, color: rgb(0.82, 0.9, 0.9) });
-  page.drawText(org.navn || "Organisasjon", { x: 42, y: 735, size: 14, font: fet, color: navy });
-  page.drawText(`Org.nr. ${org.orgnr || "-"}`, { x: 42, y: 717, size: 9, font: normal, color: graa });
+  page.drawRectangle({ x: 0, y: 521, width: 419.53, height: 74, color: navy });
+  page.drawText("HONORAROPPGAVE", { x: 28, y: 555, size: 19, font: fet, color: rgb(1, 1, 1) });
+  page.drawText(org.navn || "Organisasjon", { x: 28, y: 537, size: 9, font: normal, color: rgb(0.82, 0.9, 0.9) });
+  page.drawText(`Org.nr. ${org.orgnr || "-"}`, { x: 300, y: 537, size: 8, font: normal, color: rgb(0.82, 0.9, 0.9) });
 
-  const felt = (etikett, verdi, y) => {
-    page.drawText(etikett.toUpperCase(), { x: 42, y, size: 8, font: fet, color: graa });
-    page.drawText(String(verdi || "-"), { x: 195, y: y - 1, size: 10, font: normal, color: navy });
-    page.drawLine({ start: { x: 42, y: y - 12 }, end: { x: 553, y: y - 12 }, thickness: 0.5, color: rgb(0.85, 0.88, 0.89) });
+  const detalj = (etikett, verdi, x, y) => {
+    page.drawText(etikett.toUpperCase(), { x, y, size: 7.5, font: fet, color: graa });
+    page.drawText(String(verdi || "-"), { x, y: y - 17, size: 10, font: normal, color: navy });
   };
-  felt("Mottaker", navn, 672);
-  felt("Utbetalingsdato", dato(t.dato), 632);
-  felt("Kildebilag", t.bilagsnummer, 592);
-  felt("Grunnlag", t.beskrivelse || `Honorar - ${navn}`, 552);
-  felt("Brutto honorar", `${kr(t.belop_ore)} kr`, 500);
-  felt("Forskuddstrekk", "0,00 kr", 460);
-  page.drawRectangle({ x: 42, y: 392, width: 511, height: 48, color: rgb(0.92, 0.97, 0.96) });
-  page.drawText("NETTO UTBETALT", { x: 58, y: 411, size: 10, font: fet, color: teal });
-  page.drawText(`${kr(t.belop_ore)} kr`, { x: 430, y: 407, size: 16, font: fet, color: navy });
-  page.drawText("Status: Bankfort", { x: 42, y: 360, size: 10, font: fet, color: navy });
-  page.drawText(`Kontrollert i Saksflyt av ${brukerNavn()} ${dato(iDag())}`, { x: 42, y: 337, size: 9, font: normal, color: graa });
-  page.drawLine({ start: { x: 42, y: 270 }, end: { x: 245, y: 270 }, thickness: 0.7, color: graa });
-  page.drawText("Godkjent av / dato", { x: 42, y: 254, size: 8, font: normal, color: graa });
-  skrivLinjer(page, normal, "Internt honorarbilag som dokumenterer bankfort utbetaling. Skatteplikt, arbeidsgiveravgift og eventuell rapportering ma vurderes separat.", 42, 190, 511, 8.5, 13);
+  detalj("Bilagsnummer", `HB-${t.bilagsnummer}`, 28, 486);
+  detalj("Bilagsdato", dato(t.dato), 235, 486);
+
+  page.drawRectangle({ x: 28, y: 392, width: 363.53, height: 58, color: rgb(0.96, 0.97, 0.97) });
+  page.drawText("MOTTAKER", { x: 42, y: 430, size: 7.5, font: fet, color: graa });
+  page.drawText(navn, { x: 42, y: 409, size: 13, font: fet, color: navy });
+
+  page.drawText("UTBETALING", { x: 28, y: 352, size: 8, font: fet, color: graa });
+  const rad = (tekst, belop, y, fetRad = false) => {
+    page.drawText(tekst, { x: 28, y, size: fetRad ? 10 : 9.5, font: fetRad ? fet : normal, color: navy });
+    page.drawText(belop, { x: 315, y, size: fetRad ? 10 : 9.5, font: fetRad ? fet : normal, color: navy });
+    page.drawLine({ start: { x: 28, y: y - 12 }, end: { x: 391.53, y: y - 12 }, thickness: 0.5, color: rgb(0.85, 0.88, 0.89) });
+  };
+  rad("Honorar", `${kr(t.belop_ore)} kr`, 325);
+  rad("Forskuddstrekk", "0,00 kr", 286);
+  page.drawRectangle({ x: 28, y: 208, width: 363.53, height: 48, color: rgb(0.92, 0.97, 0.96) });
+  page.drawText("NETTO UTBETALT", { x: 42, y: 226, size: 10, font: fet, color: teal });
+  page.drawText(`${kr(t.belop_ore)} kr`, { x: 286, y: 222, size: 15, font: fet, color: navy });
+
+  detalj("Grunnlag", `Honorar - ${navn}`, 28, 167);
+  detalj("Kildebilag", t.bilagsnummer, 235, 167);
+  page.drawLine({ start: { x: 28, y: 58 }, end: { x: 391.53, y: 58 }, thickness: 0.5, color: rgb(0.85, 0.88, 0.89) });
+  page.drawText(`Dokumentasjon for honorarutbetaling ${dato(t.dato)}`, { x: 28, y: 40, size: 8, font: normal, color: graa });
   return pdf.save();
 }
 
@@ -202,14 +207,15 @@ async function bygg() {
       const total = sikre.reduce((sum, t) => sum + t.belop_ore, 0);
       const aarVelger = velg("aar", [{ verdi: "2025", tekst: "2025" }, { verdi: "2024", tekst: "2024" }], String(aar), { "aria-label": "Regnskapsår" });
       aarVelger.onchange = () => { aar = Number(aarVelger.value); tegn(); };
-      const masseknapp = knapp("Lag manglende PDF-er", { ikon: "dokument", klasse: "primary", ved: async e => {
+      const pdfKandidater = utenPdf.length ? utenPdf : sikre;
+      const masseknapp = knapp(utenPdf.length ? "Lag manglende PDF-er" : "Oppdater alle PDF-er", { ikon: "dokument", klasse: "primary", ved: async e => {
         const handlingsknapp = e.currentTarget;
-        if (!utenPdf.length) return toast("Alt er klart", "Alle bekreftede honorarer har PDF-bilag.");
-        if (!await bekreft("Lag honorarbilag", `Det lages og kobles ${utenPdf.length} PDF-bilag til de bekreftede honorarutbetalingene.`, "Lag PDF-bilag")) return;
+        if (!pdfKandidater.length) return toast("Ingen honorarer", "Det finnes ingen bekreftede honorarer i dette året.");
+        if (!await bekreft(utenPdf.length ? "Lag honorarbilag" : "Oppdater honorarbilag", `${pdfKandidater.length} PDF-bilag ${utenPdf.length ? "lages og kobles" : "erstattes med ny utforming"}.`, utenPdf.length ? "Lag PDF-bilag" : "Oppdater PDF-bilag")) return;
         handlingsknapp.disabled = true;
         try {
-          for (let i = 0; i < utenPdf.length; i++) { handlingsknapp.textContent = `Lager ${i + 1} av ${utenPdf.length} ...`; await lagreHonorarPdf(utenPdf[i]); }
-          toast("PDF-bilag opprettet", `${utenPdf.length} honorarbilag er koblet til transaksjonene.`); await tegn();
+          for (let i = 0; i < pdfKandidater.length; i++) { handlingsknapp.textContent = `Oppdaterer ${i + 1} av ${pdfKandidater.length} ...`; await lagreHonorarPdf(pdfKandidater[i]); }
+          toast("PDF-bilag oppdatert", `${pdfKandidater.length} honorarbilag er koblet til riktige datoer.`); await tegn();
         } catch (feil) { visFeil(feil, "Oppretting av honorarbilag"); handlingsknapp.disabled = false; }
       } });
       if (!kanOkonomi()) masseknapp.disabled = true;
