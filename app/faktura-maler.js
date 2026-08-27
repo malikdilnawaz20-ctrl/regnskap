@@ -575,6 +575,30 @@ reg(23,"Eksport og produksjon","Referansestrip med batch og kolleksjon, forskudd
     '<div><span class="ey">'+v.t("Merknad","Note")+'</span>'+esc(v.legal||"")+'</div></div>';
 });
 
+/* ============ 24 Foderasjon og sertifisering ============ */
+reg(24,"Føderasjon og sertifisering","Formelt brevhode med rund emblemlogo, dobbel rammelinje og sentrert bunntekst. Forbund, føderasjoner og sertifiseringsorgan.",function(v){
+  var rows=v.items.map(function(i){return "<tr><td>"+esc(i.d)+"</td><td class=\"r num\">"+(i.q&&i.q!==1?q(i.q):"")+
+    "</td><td class=\"r num\">"+v.f(i.sum)+"</td></tr>";}).join("");
+  return '<div class="hd"><div class="brand">'+
+    (v.seller.logo?'<img class="crest" src="'+v.seller.logo+'" alt="">':'<div class="crest ph"></div>')+
+    '<div class="fn"><h1>'+esc(v.seller.name)+'</h1><div class="sub">'+v.t("Internasjonalt forbund","International federation")+'</div></div></div>'+
+    '<div class="doc"><div class="dt">'+esc(v.title)+'</div><div class="meta">'+
+      '<div><span>'+v.t("Nr.","Invoice #")+'</span><b>'+esc(v.number)+'</b></div>'+
+      '<div><span>'+v.t("Dato","Date")+'</span><b>'+v.dateStr+'</b></div></div></div></div>'+
+  '<div class="rule"></div>'+
+  '<div class="bd">'+
+  '<div class="who"><div><span class="k">'+v.t("Fakturamottaker","Bill to")+'</span><b>'+esc(v.buyer.name)+'</b>'+
+    (v.buyer.att?'<br>'+esc(v.buyer.att):"")+(v.buyer.addr.length?'<br>'+A(v.buyer.addr):"")+
+    (v.buyer.email?'<br>'+esc(v.buyer.email):"")+'</div>'+
+    '<div class="due"><span class="k">'+v.t("Forfall","Due")+'</span><b>'+v.dueStr+'</b></div></div>'+
+  '<table><thead><tr><th>'+v.t("Beskrivelse","Description")+'</th><th class="r">'+v.t("Antall","Qty")+
+    '</th><th class="r">'+v.t("Beløp","Amount")+'</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+  '<div class="sum"><div class="tot"><span>'+v.t("Total","Total")+'</span><span class="num">'+v.fc(v.total)+'</span></div></div>'+
+  (v.terms?'<div class="pay">'+esc(v.terms)+'</div>':"")+
+  '<div class="ft">'+esc(v.seller.name)+(v.seller.addr.length?' · '+v.seller.addr.map(function(x){return esc(x);}).join(", "):"")+
+    (v.legal?'<br>'+esc(v.legal):"")+'</div></div>';
+});
+
 
 /* =====================================================================
    Visningsmodellen. Alle beløp inn er heltall i øre, slik resten av

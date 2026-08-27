@@ -49,7 +49,7 @@ function avsenderFra(v) {
     orgnr: v.skattenr || "",
     mva: v.skattenr || "",
     farge: v.aksentfarge || "#087F7A",
-    logo: "",
+    logo: v.logo || "",
     bank: v.bank || "",
     kontonummer: v.kontonummer || "",
     iban: v.iban || "",

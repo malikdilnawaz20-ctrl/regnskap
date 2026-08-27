@@ -537,3 +537,35 @@
 .inv-23 .sum .bal{font-size:10.5pt;font-weight:700;color:var(--ac)}
 .inv-23 .ft{margin-top:auto;padding-top:8mm;border-top:1px solid #ece9db;display:grid;grid-template-columns:1fr 1fr;
   gap:8mm;font-size:8pt;color:#4a4b40}
+
+/* ---------- 24 Foderasjon og sertifisering ---------- */
+.inv-24{font-family:"Inter",Helvetica,Arial,sans-serif;font-size:9.4pt;color:#1a1a1a;
+  display:flex;flex-direction:column;padding:14mm 16mm}
+.inv-24 .hd{display:flex;justify-content:space-between;align-items:center;gap:8mm}
+.inv-24 .brand{display:flex;align-items:center;gap:5mm}
+.inv-24 .crest{width:20mm;height:20mm;border-radius:50%;object-fit:cover;border:1.5px solid var(--ac);flex:none}
+.inv-24 .crest.ph{background:var(--acs)}
+.inv-24 .fn h1{margin:0;font-size:13.5pt;font-weight:800;letter-spacing:-.005em;color:#141414;line-height:1.2;max-width:95mm}
+.inv-24 .fn .sub{margin-top:1mm;font-size:7.6pt;text-transform:uppercase;letter-spacing:.1em;color:var(--ac);font-weight:700}
+.inv-24 .doc{text-align:right;flex:none}
+.inv-24 .doc .dt{font-size:15pt;font-weight:800;letter-spacing:.03em;color:var(--ac);text-transform:uppercase}
+.inv-24 .doc .meta{margin-top:2mm;font-size:8.2pt;color:#3a3a3a}
+.inv-24 .doc .meta div{display:flex;justify-content:flex-end;gap:2.5mm;margin-top:.8mm}
+.inv-24 .doc .meta span{color:#8a8a8a}
+.inv-24 .doc .meta b{font-variant-numeric:tabular-nums}
+.inv-24 .rule{margin-top:5mm;height:3px;background:var(--ac);position:relative}
+.inv-24 .rule::after{content:"";display:block;position:absolute;left:0;right:0;top:5px;height:1px;background:#d8d8d8}
+.inv-24 .bd{padding-top:7mm;display:flex;flex-direction:column;flex:1}
+.inv-24 .who{display:flex;justify-content:space-between;gap:8mm;margin-bottom:7mm}
+.inv-24 .k{display:block;font-size:7pt;text-transform:uppercase;letter-spacing:.08em;color:#8a8a8a;margin-bottom:1.3mm}
+.inv-24 .who>div:first-child{line-height:1.5}
+.inv-24 .due{text-align:right}
+.inv-24 table{width:100%;border-collapse:collapse}
+.inv-24 th{font-size:7.3pt;text-transform:uppercase;letter-spacing:.06em;color:#8a8a8a;font-weight:700;
+  padding:0 0 2.2mm;border-bottom:1.5px solid #1a1a1a;text-align:left}
+.inv-24 td{padding:2.8mm 0;border-bottom:1px solid #ececec;vertical-align:top;font-variant-numeric:tabular-nums}
+.inv-24 .sum{margin:5mm 0 0 auto;width:60mm}
+.inv-24 .sum .tot{display:flex;justify-content:space-between;border-top:2px solid #1a1a1a;padding-top:3mm;
+  font-size:12pt;font-weight:800;color:#141414}
+.inv-24 .pay{margin-top:6mm;padding:3.5mm 4mm;background:var(--acs);border-radius:1.5mm;font-size:8.2pt;color:#2a2a2a;font-style:italic}
+.inv-24 .ft{margin-top:auto;padding-top:8mm;text-align:center;font-size:7.4pt;color:#9a9a9a;line-height:1.6}

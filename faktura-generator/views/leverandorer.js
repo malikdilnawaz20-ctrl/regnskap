@@ -116,6 +116,8 @@ async function rediger(lev) {
       { navn: "betalingsdager", label: "Betalingsfrist (dager)", type: "number",
         verdi: String(lev?.betalingsdager ?? 0), hint: "0 betyr forskuddsbetaling." },
       { navn: "aksentfarge", label: "Farge på malen", type: "color", verdi: lev?.aksentfarge || "#087F7A" },
+      { navn: "logo", label: "Logo", type: "textarea", bredde: "full", verdi: lev?.logo || "",
+        hint: "Lim inn en data-URI (data:image/...;base64,...) eller en lenke til bildet. Tomt betyr ingen logo på fakturaen." },
 
       { navn: "rex_nr", label: "REX-nummer", verdi: lev?.rex_nr || "" },
       { navn: "hs_kode", label: "H.S.-kode", verdi: lev?.hs_kode || "", plassholder: "6203.1910" },
@@ -152,7 +154,7 @@ async function rediger(lev) {
         betalingsnotat: d.betalingsnotat || null, vilkar: d.vilkar || null,
         mal: Number(d.mal) || 4, valuta: d.valuta, sprak: d.sprak,
         prefiks: d.prefiks || null, betalingsdager: Number(d.betalingsdager) || 0,
-        aksentfarge: d.aksentfarge || "#087F7A"
+        aksentfarge: d.aksentfarge || "#087F7A", logo: d.logo || null
       };
       if (lev) {
         const { error } = await db.from("vendors").update(rad).eq("id", lev.id);
