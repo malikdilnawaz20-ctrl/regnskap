@@ -62,7 +62,7 @@ function avsenderFra(org) {
     telefon: org?.telefon || "",
     orgnr: org?.orgnr || "",
     mva: org?.orgnr ? "Org.nr " + org.orgnr : "",
-    farge: "#087F7A",
+    farge: "#0E9A6E",
     kontonummer: org?.faktura_kontonummer || org?.kontonummer || "",
     iban: org?.faktura_iban || "",
     swift: org?.faktura_swift || "",

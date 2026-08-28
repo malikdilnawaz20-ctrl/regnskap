@@ -13,7 +13,7 @@
 .malflis{flex:0 0 auto;border:1px solid var(--kant,#dfe6ec);background:var(--flate,#fff);border-radius:999px;
   padding:5px 11px;font-size:13px;cursor:pointer;white-space:nowrap;display:flex;gap:6px;align-items:center}
 .malflis .nr{opacity:.55;font-size:11px;font-variant-numeric:tabular-nums}
-.malflis[aria-pressed="true"]{background:var(--aksent,#087F7A);border-color:var(--aksent,#087F7A);color:#fff}
+.malflis[aria-pressed="true"]{background:var(--aksent,#0E9A6E);border-color:var(--aksent,#0E9A6E);color:#fff}
 .malflis[aria-pressed="true"] .nr{opacity:.75}
 
 /* Utskrift: bare fakturaen, ingenting av appen */

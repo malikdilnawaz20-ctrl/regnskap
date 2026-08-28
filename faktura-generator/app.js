@@ -1,5 +1,5 @@
 // =====================================================================
-//  Faktura generator — skall, innlogging og navigasjon.
+//  Leverandørfaktura — skall, innlogging og navigasjon.
 //
 //  Regnskapsførerfirmaet lager faktura PÅ VEGNE AV leverandøren.
 //  Leverandøren står som avsender, leverandørens egen kunde er mottaker.
@@ -35,7 +35,7 @@ start();
 
 async function start() {
   if (!ER_KONFIGURERT) return visIkkeKonfigurert();
-  tom(rot).append(laster("Starter Faktura generator …"));
+  tom(rot).append(laster("Starter Leverandørfaktura …"));
   try {
     const bruker = await hentBruker();
     if (!bruker) return visInnlogging();
@@ -117,7 +117,7 @@ function visInnlogging() {
   tom(rot).append(el("div", { class: "auth" },
     el("div", { class: "auth-card" }, [
       el("div", { class: "sb-logo" }, "F"),
-      el("h1", {}, "Faktura generator"),
+      el("h1", {}, "Leverandørfaktura"),
       el("p", { class: "sub" }, "Faktura på vegne av leverandørene dine."),
       el("div", { class: "stack", style: "gap:13px" }, [
         felt("E-post", epost),
@@ -159,7 +159,7 @@ function byggSidepanel() {
   nav.append(el("div", { class: "sb-brand" }, [
     el("div", { class: "sb-logo" }, "F"),
     el("div", {}, [
-      el("b", {}, "Faktura generator"),
+      el("b", {}, "Leverandørfaktura"),
       el("span", {}, S.org?.navn || "")
     ])
   ]));

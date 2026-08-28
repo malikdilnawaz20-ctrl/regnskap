@@ -592,13 +592,56 @@ export const medlemmerView = {
       });
     }
 
+    const valgteIder = new Set();
+
+    function tegnBulkRad() {
+      tom(bulkRad);
+      if (!kanMedlem() || !valgteIder.size) { bulkRad.hidden = true; return; }
+      bulkRad.hidden = false;
+      bulkRad.append(el("span", { class: "who" }, `${valgteIder.size} valgt`), el("button", {
+        class: "btn sm", onclick: () => tilordneAktivitetTilValgte()
+      }, "Sett aktivitet for valgte"), el("button", {
+        class: "btn sm stille", onclick: () => { valgteIder.clear(); tegnTabell(); }
+      }, "Nullstill utvalg"));
+    }
+
+    async function tilordneAktivitetTilValgte() {
+      if (!aktiviteter.length) { toast("Ingen aktiviteter", "Opprett en aktivitet først.", true); return; }
+      const ider = [...valgteIder];
+      await skjemaModal({
+        tittel: `Sett aktivitet for ${ider.length} medlemmer`,
+        beskrivelse: "Aktiviteten legges til i tillegg til det medlemmene allerede har — ingenting fjernes.",
+        lagreTekst: "Legg til",
+        felter: [
+          { navn: "activity_id", label: "Aktivitet", type: "select", valg: aktiviteter.map(a => ({ verdi: a.id, tekst: a.navn })) }
+        ],
+        onLagre: async (d) => {
+          const nye = ider.filter(id => !(memberActivityMap.get(id) || new Set()).has(d.activity_id));
+          if (nye.length) {
+            const { error } = await db.from("member_activities")
+              .insert(nye.map(member_id => ({ member_id, activity_id: d.activity_id })));
+            if (error) throw error;
+          }
+          toast("Lagt til", `${nye.length} av ${ider.length} medlemmer fikk aktiviteten (resten hadde den fra før).`);
+          valgteIder.clear();
+        }
+      });
+      paaNytt();
+    }
+
     function radFor(m) {
       const aktIder = memberActivityMap.get(m.id) || new Set();
       const aktNavn = [...aktIder].map(id => aktivitetMap.get(id)?.navn).filter(Boolean);
       const alderTxt = m.fodselsdato ? `${alder(m.fodselsdato)} år` : "Alder ukjent";
       const bet = betalingsstatus(claimMap.get(m.id) || []);
       const st = statusVisning(m.status);
+      const cb = el("input", {
+        type: "checkbox", checked: valgteIder.has(m.id),
+        onclick: e => e.stopPropagation(),
+        onchange: e => { e.target.checked ? valgteIder.add(m.id) : valgteIder.delete(m.id); tegnBulkRad(); }
+      });
       return el("tr", { class: "klikk", onclick: () => apneMedlemskort(m) }, [
+        el("td", { onclick: e => e.stopPropagation() }, kanMedlem() ? cb : null),
         el("td", {}, [el("div", {}, `${m.fornavn} ${m.etternavn}`), el("span", { class: "who" }, alderTxt)]),
         el("td", {}, dato(m.fodselsdato)),
         el("td", {}, aktNavn.length ? aktNavn.map(n => pille(n, "teal")) : el("span", { class: "dim" }, "Ingen")),
@@ -609,12 +652,14 @@ export const medlemmerView = {
     }
 
     const kolonner = [
-      { t: "Navn" }, { t: "Fødselsdato" }, { t: "Aktiviteter" }, { t: "Kontakt" }, { t: "Status" }, { t: "Betaling" }
+      { t: "" }, { t: "Navn" }, { t: "Fødselsdato" }, { t: "Aktiviteter" }, { t: "Kontakt" }, { t: "Status" }, { t: "Betaling" }
     ];
+    const bulkRad = el("div", { class: "tabellverktoy", hidden: true });
     const tabellHost = el("div");
     function tegnTabell() {
       tom(tabellHost);
       tabellHost.append(tabell(kolonner, filtrerte().map(radFor), "Ingen medlemmer funnet."));
+      tegnBulkRad();
     }
     tegnTabell();
 
@@ -693,7 +738,7 @@ export const medlemmerView = {
       eyebrow: "Medlemsregister",
       tittel: `${medlemmer.length} medlemmer`,
       hoyre: handlinger,
-      innhold: [infoNote, filterRad, tabellHost]
+      innhold: [infoNote, filterRad, bulkRad, tabellHost]
     });
 
     return el("div", { class: "stack" }, [statsRow, registerKort]);

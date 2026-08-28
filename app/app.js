@@ -342,7 +342,7 @@ function byggSidepanel() {
     }, [el("span", { html: svg("prosjekt") }), "Atlas — Prosjekter"]));
     eierBoks.append(el("button", {
       class: "sb-item", onclick: () => { location.href = "../faktura-generator/"; }
-    }, [el("span", { html: svg("kvittering") }), "Faktura generator"]));
+    }, [el("span", { html: svg("kvittering") }), "Leverandørfaktura"]));
     nav.append(eierBoks);
   }
 
@@ -615,7 +615,7 @@ async function forside() {
       beskrivelse: "Interne verktøy — kun synlig for deg, ikke en del av det organisasjoner ser.",
       innhold: el("div", { style: "display:flex;gap:10px;flex-wrap:wrap;" }, [
         knapp("Atlas — Prosjekter", { klasse: "stille sm", ikon: "prosjekt", ved: () => { location.href = "../atlas/"; } }),
-        knapp("Faktura generator", { klasse: "stille sm", ikon: "kvittering", ved: () => { location.href = "../faktura-generator/"; } })
+        knapp("Leverandørfaktura", { klasse: "stille sm", ikon: "kvittering", ved: () => { location.href = "../faktura-generator/"; } })
       ])
     }));
   }

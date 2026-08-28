@@ -27,7 +27,7 @@ function belop(ore, valuta) {
 
 
 function hexA(hex,a){
-  var h=(hex||"#126f69").replace("#","");
+  var h=(hex||"#0B7A57").replace("#","");
   if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
   var n=parseInt(h,16);
   return "rgba("+((n>>16)&255)+","+((n>>8)&255)+","+(n&255)+","+a+")";
@@ -644,7 +644,7 @@ export function lagVisning({ faktura, linjer, kunde, org, avsender }) {
     seller: {
       name: a.navn || org?.navn || "", addr: (a.adresse || "").split("\n").filter((x) => x.trim()),
       email: a.epost || "", phone: a.telefon || "", org: a.orgnr || "",
-      vat: a.mva || "", accent: a.farge || "#087F7A", logo: a.logo || "",
+      vat: a.mva || "", accent: a.farge || "#0E9A6E", logo: a.logo || "",
       x: a.eksport || {}
     },
     buyer: {
@@ -689,7 +689,7 @@ export function malMedId(id) { return T.find((m) => m.id === Number(id)) || T[0]
 /** Returnerer én ferdig fakturaside som HTML-streng. */
 export function tegnFaktura(v, malId) {
   const m = malMedId(malId);
-  const stil = "--ac:" + (v.seller.accent || "#087F7A") +
+  const stil = "--ac:" + (v.seller.accent || "#0E9A6E") +
                ";--acs:" + hexA(v.seller.accent, 0.13) + ";";
   return '<div class="inv inv-' + m.id + '" style="' + stil + '">' + m.render(v) + "</div>";
 }

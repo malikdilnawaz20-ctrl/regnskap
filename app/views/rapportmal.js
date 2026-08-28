@@ -522,7 +522,7 @@ export function prosjektregnskap(g, prosjekt) {
    Alt er SVG, slik at det ser likt ut på skjerm og på papir.
    ===================================================================== */
 
-const GRONN = "#087F7A", RUST = "#B3352F", GRA = "#E4E9EE";
+const GRONN = "#0E9A6E", RUST = "#B3352F", GRA = "#E4E9EE";
 
 /** Store tall øverst i dokumentet. */
 export function noekkeltall(liste) {
@@ -561,7 +561,7 @@ export function stolper(rader, { farge = GRONN, maks = 7 } = {}) {
     return `
       <text x="0" y="${y + H - 6}" class="d-navn">${trygg(r.navn)}</text>
       <rect x="${navnB}" y="${y + 3}" width="${barB}" height="${H - 6}" rx="3" fill="${GRA}"/>
-      <rect x="${navnB}" y="${y + 3}" width="${b}" height="${H - 6}" rx="3" fill="${r.ovrig ? "#9BD8D2" : farge}"/>
+      <rect x="${navnB}" y="${y + 3}" width="${b}" height="${H - 6}" rx="3" fill="${r.ovrig ? "#A9E6CB" : farge}"/>
       <text x="${bredde}" y="${y + H - 6}" class="d-tall" text-anchor="end">${trygg(kr0(r.ore))}</text>`;
   }).join("");
 
