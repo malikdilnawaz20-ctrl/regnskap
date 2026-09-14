@@ -498,7 +498,7 @@ function personKort(p) {
     el("span", {}, `Klubben kan publisere bilder og video av ${p.fornavn || (erBarn ? "barnet" : "meg")} fra trening og stevner. Samtykket kan trekkes tilbake når som helst.`)
   ]));
 
-  return el("div", { class: "inn-person " + p.rolle, dataset: { nokkel: String(p.nokkel) } }, innhold);
+  return el("div", { class: "inn-person " + p.rolle, "data-nokkel": String(p.nokkel) }, innhold);
 }
 
 function seksjonSamtykke() {
