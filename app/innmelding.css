@@ -1,0 +1,128 @@
+/* =====================================================================
+   Innmeldingsskjemaet — offentlig side, ingen innlogging.
+   Bygger på styles.css. Bare det som er særegent for skjemaet ligger her.
+   Mobil er utgangspunktet: foreldre fyller dette ut på telefonen.
+   ===================================================================== */
+
+.innmelding-side{
+  background:var(--paper);
+  min-height:100dvh;
+  padding-bottom:118px;              /* plass til sendelinjen nederst */
+}
+
+.inn-wrap{max-width:660px;margin:0 auto;padding:0 16px}
+
+/* --- topp ---------------------------------------------------------- */
+
+.inn-topp{
+  background:var(--teal);
+  color:var(--teal-ink);
+  padding:26px 0 30px;
+  margin-bottom:-18px;
+}
+.inn-topp .inn-wrap{display:flex;flex-direction:column;gap:8px}
+.inn-klubb{
+  display:flex;align-items:center;gap:10px;
+  font-size:.8rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  opacity:.86;
+}
+.inn-merke{
+  width:30px;height:30px;border-radius:9px;flex:none;
+  background:rgba(255,255,255,.16);
+  display:grid;place-items:center;font-weight:700;font-size:.95rem;
+  letter-spacing:0;text-transform:none;
+}
+.inn-topp h1{font-size:1.5rem;line-height:1.25;margin:0;font-weight:700}
+.inn-topp p{margin:0;font-size:.92rem;line-height:1.5;opacity:.9;max-width:46ch}
+
+.inn-gratis{
+  display:inline-flex;align-items:center;gap:7px;align-self:flex-start;
+  margin-top:4px;padding:5px 11px;border-radius:999px;
+  background:rgba(255,255,255,.18);font-size:.8rem;font-weight:600;
+}
+
+/* --- seksjoner ----------------------------------------------------- */
+
+.inn-seksjon{margin-top:18px}
+.inn-seksjon > .card{padding:0}
+.inn-hode{padding:18px 18px 4px}
+.inn-hode h2{font-size:1.02rem;margin:0 0 3px;font-weight:650}
+.inn-hode p{margin:0;font-size:.845rem;color:var(--muted);line-height:1.5}
+.inn-nr{
+  display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;
+  background:var(--teal-soft);color:var(--teal);
+  font-size:.78rem;font-weight:700;margin-right:8px;vertical-align:2px;
+}
+.inn-kropp{padding:14px 18px 18px;display:flex;flex-direction:column;gap:13px}
+
+.inn-rad{display:grid;gap:13px}
+@media(min-width:560px){
+  .inn-rad.to{grid-template-columns:1fr 1fr}
+  .inn-rad.postnr{grid-template-columns:120px 1fr}
+}
+
+/* --- personkort ---------------------------------------------------- */
+
+.inn-person{
+  border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:14px;display:flex;flex-direction:column;gap:12px;
+  background:var(--panel-2);
+}
+.inn-person.barn{border-left:3px solid var(--teal)}
+.inn-person.voksen{border-left:3px solid var(--blue)}
+.inn-person-hode{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.inn-person-tittel{display:flex;align-items:center;gap:9px;font-weight:650;font-size:.93rem}
+.inn-person-tittel .badge{font-weight:600}
+
+.inn-fnr-svar{font-size:.79rem;margin-top:5px;display:flex;align-items:center;gap:6px}
+.inn-fnr-svar.ok{color:var(--green)}
+.inn-fnr-svar.feil{color:var(--red)}
+.inn-fnr-svar.tom{color:var(--muted)}
+
+.inn-legg-til{display:flex;gap:10px;flex-wrap:wrap}
+.inn-legg-til .btn{flex:1 1 auto;justify-content:center}
+
+.inn-samtykke{
+  display:flex;gap:11px;align-items:flex-start;
+  font-size:.855rem;line-height:1.5;cursor:pointer;
+}
+.inn-samtykke input{margin-top:2px;flex:none}
+
+/* --- sendelinje ---------------------------------------------------- */
+
+.inn-send{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  background:var(--panel);border-top:1px solid var(--line);
+  padding:12px 0 calc(12px + env(safe-area-inset-bottom));
+  box-shadow:0 -6px 22px rgba(0,0,0,.07);
+}
+.inn-send .inn-wrap{display:flex;align-items:center;gap:14px}
+.inn-send-tekst{flex:1;min-width:0;font-size:.82rem;color:var(--muted);line-height:1.4}
+.inn-send-tekst b{color:var(--ink);font-weight:650}
+.inn-send .btn{flex:none;min-width:150px;justify-content:center}
+@media(max-width:480px){
+  .inn-send .inn-wrap{flex-direction:column;align-items:stretch;gap:9px}
+  .inn-send .btn{width:100%}
+}
+
+/* --- kvittering ---------------------------------------------------- */
+
+.inn-kvittering{text-align:center;padding:38px 22px}
+.inn-kvittering .inn-hake{
+  width:56px;height:56px;border-radius:50%;margin:0 auto 16px;
+  background:var(--green-soft);color:var(--green);
+  display:grid;place-items:center;
+}
+.inn-kvittering .inn-hake svg{width:28px;height:28px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.inn-kvittering h1{font-size:1.35rem;margin:0 0 8px}
+.inn-kvittering p{color:var(--muted);font-size:.92rem;line-height:1.6;max-width:44ch;margin:0 auto 16px}
+.inn-referanse{
+  display:inline-block;padding:9px 16px;border-radius:var(--r-sm);
+  background:var(--hover);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:1.02rem;font-weight:600;letter-spacing:.06em;
+}
+
+.inn-bunn{
+  padding:22px 0 8px;font-size:.78rem;color:var(--muted);
+  line-height:1.6;text-align:center;
+}

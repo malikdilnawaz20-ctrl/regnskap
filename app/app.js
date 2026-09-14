@@ -16,6 +16,7 @@ import {
 } from "./store.js";
 
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
+import { innmeldingerView } from "./views/innmeldinger.js?v=20260909-1";
 import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260827-1705";
 import { honorarerView } from "./views/honorarer.js?v=20260827-2350";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
@@ -33,6 +34,7 @@ const RUTER = {
   medlemmer:   { tittel: "Medlemmer", ikon: "medlemmer", view: () => medlemmerView },
   aktiviteter: { tittel: "Aktiviteter", ikon: "aktivitet", view: () => aktiviteterView },
   familier:    { tittel: "Familier", ikon: "medlemmer", view: () => familierView, skjult: true },
+  innmeldinger: { tittel: "Innmeldinger", ikon: "last", view: () => innmeldingerView },
   betalinger:  { tittel: "Betalinger", ikon: "betaling", view: () => kontingentView },
   okonomi:     { tittel: "Økonomi", ikon: "okonomi", view: () => okonomiView },
   honorarer:   { tittel: "Honorarer", ikon: "betaling", view: () => honorarerView },
@@ -53,7 +55,7 @@ const RUTER = {
 
 const HOVEDNAV = [
   { gruppe: null, punkter: ["oversikt"] },
-  { gruppe: "Klubben", punkter: ["medlemmer", "aktiviteter", "betalinger"] },
+  { gruppe: "Klubben", punkter: ["medlemmer", "innmeldinger", "aktiviteter", "betalinger"] },
   { gruppe: "Penger", punkter: ["okonomi", "honorarer", "faktura", "prosjekter", "rapporter"] },
   { gruppe: "Arkiv", punkter: ["dokumenter"] }
 ];
@@ -509,11 +511,12 @@ async function tegnInnhold(boks) {
 async function forside() {
   const boks = el("div", { class: "stack" });
 
-  const [okonomi, medlemsTall, prosjekter, attest] = await Promise.all([
+  const [okonomi, medlemsTall, prosjekter, attest, nyeInnmeldinger] = await Promise.all([
     hentOkonomiTall().catch(() => ({})),
     hentMedlemsTall().catch(() => ({})),
     velgFra("v_prosjekt_status", "*").then(r => r.data || []).catch(() => []),
-    hentAttesteringTall().catch(() => ({ tilAttestering: 0, tilAnvisning: 0 }))
+    hentAttesteringTall().catch(() => ({ tilAttestering: 0, tilAnvisning: 0 })),
+    velgFra("innmeldinger", "id").eq("status", "ny").then(r => (r.data || []).length).catch(() => 0)
   ]);
 
   /* --- fire nøkkeltall --- */
@@ -546,6 +549,11 @@ async function forside() {
 
   /* --- trenger oppmerksomhet --- */
   const rader = [];
+  if (nyeInnmeldinger) rader.push(oppmRad({
+    tittel: antall(nyeInnmeldinger, "familie har meldt seg inn", "familier har meldt seg inn"),
+    undertekst: "Se gjennom og godkjenn, så opprettes medlemmene",
+    farge: "teal", ikon: "last", klikk: () => gaTil("innmeldinger")
+  }));
   if (medlemsTall.ubetalte) rader.push(oppmRad({
     tittel: antall(medlemsTall.ubetalte, "medlem har ikke betalt", "medlemmer har ikke betalt"),
     undertekst: "Se hvem det gjelder og send påminnelse",
