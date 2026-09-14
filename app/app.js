@@ -23,6 +23,7 @@ import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
 import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";
 import { rapportmalView } from "./views/rapportmal.js?v=20260827-1705";
 import { MERKE } from "./config.js";
+import { stemple, kanStemples } from "./stempel.js";
 
 /* =====================================================================
    Navigasjon — organisert etter hva brukeren vil gjøre,
@@ -1052,6 +1053,89 @@ const MAPPER = [
   "Andre dokumenter"
 ];
 
+/* ---------------------------------------------------------------------
+   Stempling av dokumenter som allerede ligger i arkivet.
+
+   Filen hentes ned, nummeret trykkes inn, og den stemplede versjonen
+   lastes opp på en ny sti og blir dokumentets fil. Originalen blir
+   liggende urørt i lagringen med stien tatt vare på i original_path,
+   slik at en feilstempling kan rulles tilbake.
+   --------------------------------------------------------------------- */
+
+function stempelStatus(d) {
+  if (d.stemplet) return "Stemplet i filen";
+  if (!d.storage_path) return "Ingen fil";
+  if (!kanStemples(d.filnavn || d.storage_path)) return "Filtypen kan ikke stemples";
+  return "Ikke stemplet ennå";
+}
+
+function kanStemplesRad(d) {
+  return !!d.storage_path && !d.stemplet && kanStemples(d.filnavn || d.storage_path);
+}
+
+async function stempleArkivdokument(d) {
+  if (!d.storage_path) return { ok: false, grunn: "har ingen fil" };
+  if (!d.saksflytnr) return { ok: false, grunn: "mangler saksflytnummer" };
+  if (!kanStemples(d.filnavn || d.storage_path)) return { ok: false, grunn: "filtypen kan ikke stemples" };
+
+  const { data: blob, error: nedFeil } = await db.storage.from("dokumenter").download(d.storage_path);
+  if (nedFeil) return { ok: false, grunn: "kunne ikke hentes: " + nedFeil.message };
+
+  const navn = d.filnavn || d.storage_path.split("/").pop();
+  const { fil, stemplet } = await stemple(new File([blob], navn, { type: blob.type || "" }), d.saksflytnr);
+  if (!stemplet) return { ok: false, grunn: "stemplingen gikk ikke gjennom" };
+
+  const sti = `${S.orgId}/${Date.now()}-${fil.name.replace(/[^\w.\-]/g, "_")}`;
+  const { error: oppFeil } = await db.storage.from("dokumenter").upload(sti, fil);
+  if (oppFeil) return { ok: false, grunn: "kunne ikke lastes opp: " + oppFeil.message };
+
+  const { error } = await db.from("documents").update({
+    storage_path: sti,
+    original_path: d.original_path || d.storage_path,
+    filnavn: fil.name,
+    stemplet: true,
+    stemplet_tid: new Date().toISOString()
+  }).eq("id", d.id);
+  if (error) return { ok: false, grunn: error.message };
+
+  return { ok: true };
+}
+
+async function stempleMange(liste, btn) {
+  if (!liste.length) return;
+  const flere = liste.length > 1;
+  const ok = await bekreft(
+    flere ? `Stemple ${liste.length} dokumenter?` : "Stemple dokumentet?",
+    "Saksflytnummeret trykkes øverst til høyre i hver fil. Den opprinnelige filen blir liggende urørt i lagringen, "
+    + "så dette kan rulles tilbake.",
+    flere ? "Ja, stemple alle" : "Ja, stemple");
+  if (!ok) return;
+
+  const opprinnelig = btn ? [...btn.childNodes] : null;
+  const settTekst = (t) => { if (btn) { btn.disabled = true; btn.replaceChildren(t); } };
+
+  let gjort = 0;
+  const feilet = [];
+  for (const [i, d] of liste.entries()) {
+    settTekst(flere ? `Stempler ${i + 1} av ${liste.length} …` : "Stempler …");
+    try {
+      const r = await stempleArkivdokument(d);
+      if (r.ok) gjort++; else feilet.push(`${d.tittel || d.filnavn || d.saksflytnr} — ${r.grunn}`);
+    } catch (e) {
+      feilet.push(`${d.tittel || d.filnavn || d.saksflytnr} — ${e.message || e}`);
+    }
+  }
+  if (btn && opprinnelig) { btn.disabled = false; btn.replaceChildren(...opprinnelig); }
+
+  if (feilet.length) {
+    toast("Stemplet " + gjort + " av " + liste.length,
+      feilet.slice(0, 3).join(". ") + (feilet.length > 3 ? ` … og ${feilet.length - 3} til.` : ""), true);
+  } else {
+    toast("Stemplet", antall(gjort, "dokument har", "dokumenter har") + " fått nummeret trykket inn i filen.");
+  }
+  tegn();
+}
+
 async function dokumenter() {
   const { data, error } = await velgFra("documents", "*").order("opprettet", { ascending: false });
   if (error) throw error;
@@ -1072,9 +1156,21 @@ async function dokumenter() {
   const grupper = {};
   for (const d of data) (grupper[d.mappe] = grupper[d.mappe] || []).push(d);
 
+  const uStemplet = data.filter(kanStemplesRad);
+  const stempleAlleKnapp = (kanSkrive() && uStemplet.length)
+    ? knapp("Stemple " + antall(uStemplet.length, "dokument", "dokumenter"), {
+        ikon: "ok",
+        tittel: "Trykker saksflytnummeret inn i filene som ikke er stemplet ennå",
+        ved: (e) => stempleMange(uStemplet, e.currentTarget)
+      })
+    : null;
+
   boks.append(el("div", { class: "between" }, [
     el("span", { class: "meta" }, `${data.length} dokumenter i ${Object.keys(grupper).length} mapper`),
-    kanSkrive() ? knapp("Last opp dokument", { klasse: "primary", ikon: "last", ved: lastOppDokument }) : null
+    el("div", { class: "actions" }, [
+      stempleAlleKnapp,
+      kanSkrive() ? knapp("Last opp dokument", { klasse: "primary", ikon: "last", ved: lastOppDokument }) : null
+    ])
   ]));
 
   const mappeRekke = [...MAPPER, ...Object.keys(grupper).filter(m => !MAPPER.includes(m))];
@@ -1084,18 +1180,28 @@ async function dokumenter() {
     boks.append(kort({
       tittel: mappe,
       beskrivelse: `${filer.length} dokument${filer.length === 1 ? "" : "er"}`,
-      innhold: tabell([{ t: "Tittel" }, { t: "Lagt inn" }, { t: "Tilgang" }, { t: "" }],
+      innhold: tabell([{ t: "Tittel" }, { t: "Lagt inn" }, { t: "Tilgang" }, { t: "Saksflytnummer", num: true }, { t: "" }],
         filer.map(f => el("tr", {}, [
           el("td", { class: "strong" }, [f.tittel, f.filnavn && el("span", { class: "who" }, f.filnavn)]),
           el("td", { class: "dim" }, tidspunkt(f.opprettet)),
           el("td", {}, f.kun_styret ? merke("Kun styret", "gold") : merke("Alle i klubben", "neutral")),
-          el("td", { class: "num" }, f.storage_path ? knapp("Åpne", {
-            klasse: "stille sm", ved: async () => {
-              const { data: url, error } = await db.storage.from("dokumenter").createSignedUrl(f.storage_path, 60);
-              if (error) return visFeil(error, "Åpning");
-              window.open(url.signedUrl, "_blank", "noopener");
-            }
-          }) : null)
+          el("td", { class: "num mono" }, f.saksflytnr
+            ? [f.saksflytnr, el("span", { class: "who" }, stempelStatus(f))]
+            : el("span", { class: "dim" }, "—")),
+          el("td", { class: "num" }, el("div", { class: "actions" }, [
+            (kanSkrive() && kanStemplesRad(f)) ? knapp("Stemple", {
+              klasse: "stille sm",
+              tittel: "Trykk " + f.saksflytnr + " inn i filen",
+              ved: (e) => stempleMange([f], e.currentTarget)
+            }) : null,
+            f.storage_path ? knapp("Åpne", {
+              klasse: "stille sm", ved: async () => {
+                const { data: url, error } = await db.storage.from("dokumenter").createSignedUrl(f.storage_path, 60);
+                if (error) return visFeil(error, "Åpning");
+                window.open(url.signedUrl, "_blank", "noopener");
+              }
+            }) : null
+          ]))
         ])))
     }));
   }
@@ -1104,6 +1210,7 @@ async function dokumenter() {
 
 async function lastOppDokument() {
   const fil = el("input", { type: "file" });
+  let tildelt = null;
   const svar = await skjemaModal({
     tittel: "Last opp dokument",
     felter: [
@@ -1116,21 +1223,41 @@ async function lastOppDokument() {
     onLagre: async (d) => {
       if (!d.tittel) { toast("Mangler tittel", "Gi dokumentet et navn folk kjenner igjen.", true); return false; }
       const f = fil.files[0];
-      let sti = null;
+
+      // Nummeret hentes før opplasting, fordi det skal trykkes inn i filen.
+      const { data: nummer, error: nrFeil } = await db.rpc("nytt_saksflytnummer");
+      if (nrFeil) { visFeil(nrFeil, "Saksflytnummeret"); return false; }
+      tildelt = nummer;
+
+      let sti = null, stemplet = false;
       if (f) {
-        sti = `${S.orgId}/${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
-        const { error } = await db.storage.from("dokumenter").upload(sti, f);
-        if (error) { toast("Opplasting", "Filen ble ikke lastet opp: " + error.message + ". Dokumentet lagres uten fil.", true); sti = null; }
+        const stempling = await stemple(f, nummer);
+        stemplet = stempling.stemplet;
+        if (!stemplet && kanStemples(f)) {
+          toast("Stempling", "Nummeret kunne ikke trykkes inn i filen. Det står i arkivet i stedet.", true);
+        }
+        sti = `${S.orgId}/${Date.now()}-${stempling.fil.name.replace(/[^\w.\-]/g, "_")}`;
+        const { error } = await db.storage.from("dokumenter").upload(sti, stempling.fil);
+        if (error) {
+          toast("Opplasting", "Filen ble ikke lastet opp: " + error.message + ". Dokumentet lagres uten fil.", true);
+          sti = null; stemplet = false;
+        }
       }
       const { error } = await settInn("documents", {
         tittel: d.tittel, mappe: d.mappe, kun_styret: d.kun_styret,
-        filnavn: f?.name || null, storage_path: sti, lastet_opp_av: S.bruker.id
+        filnavn: f?.name || null, storage_path: sti, lastet_opp_av: S.bruker.id,
+        saksflytnr: nummer, stemplet
       });
       if (error) throw error;
       return true;
     }
   });
-  if (svar) { toast("Lagt inn", "Dokumentet er lagret."); tegn(); }
+  if (svar) {
+    toast("Lagt inn", tildelt
+      ? "Dokumentet er lagret som " + tildelt + "."
+      : "Dokumentet er lagret.");
+    tegn();
+  }
 }
 
 async function revisjonsspor() {
