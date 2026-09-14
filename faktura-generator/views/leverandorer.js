@@ -111,8 +111,19 @@ async function rediger(lev) {
         valg: VALUTAER.map(v => ({ verdi: v, tekst: v })) },
       { navn: "sprak", label: "Språk på fakturaen", type: "select", verdi: lev?.sprak || "en",
         valg: [{ verdi: "en", tekst: "Engelsk" }, { verdi: "no", tekst: "Norsk" }] },
+      { navn: "nummerformat", label: "Nummerformat", type: "select",
+        verdi: lev?.nummerformat || "serie",
+        valg: [
+          { verdi: "serie", tekst: "Fortløpende serie — GKS/2026-0001" },
+          { verdi: "ifkk_tilfeldig", tekst: "Initialer, år, land og tilfeldig tall — MD26NO12345" }
+        ],
+        hint: "Det tilfeldige formatet er IFKKs egen konvensjon. Nummeret sier ingenting om rekkefølge." },
       { navn: "prefiks", label: "Nummerprefiks", verdi: lev?.prefiks || "",
-        plassholder: "GKS", hint: "Blir GKS/2026-0001. Tomt gir 2026-0001." },
+        plassholder: "GKS", hint: "Bare for fortløpende serie. Blir GKS/2026-0001. Tomt gir 2026-0001." },
+      { navn: "initialer", label: "Initialer i nummeret", verdi: lev?.initialer || "",
+        plassholder: "MD", hint: "2–4 store bokstaver. Bare for det tilfeldige formatet." },
+      { navn: "standard_landkode", label: "Standard landkode", verdi: lev?.standard_landkode || "",
+        plassholder: "NO", hint: "Brukes når kundens land ikke kjennes igjen. To bokstaver." },
       { navn: "betalingsdager", label: "Betalingsfrist (dager)", type: "number",
         verdi: String(lev?.betalingsdager ?? 0), hint: "0 betyr forskuddsbetaling." },
       { navn: "aksentfarge", label: "Farge på malen", type: "color", verdi: lev?.aksentfarge || "#087F7A" },
@@ -144,6 +155,18 @@ async function rediger(lev) {
     } : null,
     onLagre: async (d) => {
       if (!d.navn) { toast("Mangler navn", "Leverandøren må ha et navn.", true); return false; }
+      const initialer = (d.initialer || "").trim().toUpperCase();
+      const landkode  = (d.standard_landkode || "").trim().toUpperCase();
+      if (initialer && !/^[A-Z]{2,4}$/.test(initialer)) {
+        toast("Initialene", "Skriv 2–4 bokstaver, som MD.", true); return false;
+      }
+      if (landkode && !/^[A-Z]{2}$/.test(landkode)) {
+        toast("Landkoden", "Skriv landkoden med to bokstaver, som NO.", true); return false;
+      }
+      if (d.nummerformat === "ifkk_tilfeldig" && !initialer) {
+        toast("Mangler initialer", "Det tilfeldige nummerformatet trenger initialene som skal stå først i nummeret.", true);
+        return false;
+      }
       const rad = {
         navn: d.navn, adresse: d.adresse || null, land: d.land || null,
         epost: d.epost || null, telefon: d.telefon || null, skattenr: d.skattenr || null,
@@ -154,6 +177,8 @@ async function rediger(lev) {
         betalingsnotat: d.betalingsnotat || null, vilkar: d.vilkar || null,
         mal: Number(d.mal) || 4, valuta: d.valuta, sprak: d.sprak,
         prefiks: d.prefiks || null, betalingsdager: Number(d.betalingsdager) || 0,
+        nummerformat: d.nummerformat || "serie",
+        initialer: initialer || null, standard_landkode: landkode || null,
         aksentfarge: d.aksentfarge || "#087F7A", logo: d.logo || null
       };
       if (lev) {

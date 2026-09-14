@@ -303,7 +303,9 @@ async function byggRediger() {
       el("span", { html: svg("varsel") }),
       el("div", {}, [
         el("b", {}, "Fakturadatoen ligger " + dager + " dager tilbake. "),
-        "Leverandørens nummerserie må stige i takt med datoen, så utstedelse blir avvist hvis det finnes en nyere faktura fra før."
+        lev.nummerformat === "ifkk_tilfeldig"
+          ? "Året i fakturanummeret følger denne datoen, så sjekk at den stemmer før du utsteder."
+          : "Leverandørens nummerserie må stige i takt med datoen, så utstedelse blir avvist hvis det finnes en nyere faktura fra før."
       ])
     ]));
   }
@@ -401,6 +403,21 @@ async function byggRediger() {
       tegnForhaandsvisning();
     });
 
+    const landkodeFelt = tekstfelt("landkode", faktura.nummer_landkode || "", { placeholder: "NO" });
+    landkodeFelt.disabled = !skriv;
+    landkodeFelt.maxLength = 2;
+    landkodeFelt.addEventListener("change", async () => {
+      const v = landkodeFelt.value.trim().toUpperCase();
+      if (v && !/^[A-Z]{2}$/.test(v)) {
+        toast("Landkoden", "Skriv landkoden med to bokstaver, som NO.", true);
+        landkodeFelt.value = faktura.nummer_landkode || "";
+        return;
+      }
+      landkodeFelt.value = v;
+      faktura.nummer_landkode = v || null;
+      await lagre({ nummer_landkode: v || null });
+    });
+
     const leveringFelt = el("input", { type: "date", value: faktura.levering_til || "" });
     leveringFelt.disabled = !skriv;
     leveringFelt.addEventListener("change", async () => {
@@ -434,7 +451,10 @@ async function byggRediger() {
       ]),
       el("div", { class: "grid g2" }, [
         merkeFelt("Leveringsdato", leveringFelt),
-        null
+        lev.nummerformat === "ifkk_tilfeldig"
+          ? merkeFelt("Land i fakturanummeret", landkodeFelt,
+              "To bokstaver. Tomt betyr at kundens land brukes.")
+          : null
       ])
     );
   }
@@ -735,7 +755,9 @@ async function byggRediger() {
       const ok = await bekreft("Utsted fakturaen?",
         faktura.type === "proforma"
           ? "Proforma får sitt eget nummer og spiser ikke av den ordinære serien. Den kan ikke endres etterpå."
-          : "Fakturaen får neste nummer i leverandørens serie og kan ikke endres etterpå. Feil rettes med kreditnota.",
+          : lev.nummerformat === "ifkk_tilfeldig"
+            ? "Fakturaen får et nummer på formen " + (lev.initialer || "MD") + "26NO12345 og kan ikke endres etterpå. Feil rettes med kreditnota."
+            : "Fakturaen får neste nummer i leverandørens serie og kan ikke endres etterpå. Feil rettes med kreditnota.",
         "Ja, utsted");
       if (!ok) return;
       try {
