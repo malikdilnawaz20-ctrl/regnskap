@@ -37,6 +37,8 @@ function el(tag, attr = {}, barn = []) {
 
 const tom = (n) => { while (n.firstChild) n.removeChild(n.firstChild); return n; };
 
+const antall = (n, ental, flertall) => `${n} ${n === 1 ? ental : flertall}`;
+
 function felt(merkelapp, input, hint) {
   return el("label", { class: "field" }, [
     el("span", {}, merkelapp),
@@ -227,6 +229,7 @@ function tegn() {
     seksjonSamtykke(),
     bunntekst()
   ]), sendelinje());
+  oppdaterSendelinje();
 }
 
 function topp() {
@@ -306,6 +309,8 @@ function seksjonKontakt() {
 }
 
 function seksjonPersoner() {
+  // Personlisten tegnes på nytt når noen legges til eller fjernes.
+  // Kontaktfeltene ligger utenfor, slik at de aldri mister fokus.
   const boks = el("div", { class: "inn-kropp", id: "personer" });
 
   const seksjonsEl = el("section", { class: "inn-seksjon" }, [
@@ -314,7 +319,8 @@ function seksjonPersoner() {
         el("h2", {}, [el("span", { class: "inn-nr" }, "2"), "Hvem skal meldes inn"]),
         el("p", {}, "Legg til alle i familien — voksne og barn. Alle bor på adressen over.")
       ]),
-      boks
+      boks,
+      el("div", { class: "inn-kropp", style: "padding-top:0" }, seksjonKontakt())
     ])
   ]);
 
@@ -322,7 +328,7 @@ function seksjonPersoner() {
   return seksjonsEl;
 }
 
-function tegnPersoner(boks = $("#personer")) {
+function tegnPersoner(boks = $("#personer"), fokusNokkel = null) {
   if (!boks) return;
   tom(boks);
 
@@ -334,24 +340,38 @@ function tegnPersoner(boks = $("#personer")) {
   boks.append(el("div", { class: "inn-legg-til" }, [
     el("button", {
       type: "button", class: "btn",
-      onclick: () => { personer.push(nyPerson("voksen")); tegnPersoner(); oppdaterSendelinje(); }
+      onclick: () => { const n = nyPerson("voksen"); personer.push(n); tegnPersoner(); oppdaterSendelinje(); rullTil(n.nokkel); }
     }, "+ Legg til voksen"),
     el("button", {
       type: "button", class: "btn primary",
-      onclick: () => { personer.push(nyPerson("barn")); tegnPersoner(); oppdaterSendelinje(); }
+      onclick: () => { const n = nyPerson("barn"); personer.push(n); tegnPersoner(); oppdaterSendelinje(); rullTil(n.nokkel); }
     }, "+ Legg til barn")
   ]));
 
   boks.append(el("div", { class: "note info" }, [
     el("div", {}, [
-      el("b", {}, `${voksne.length} voksne og ${barn.length} barn. `),
+      el("b", {}, `${antall(voksne.length, "voksen", "voksne")} og ${antall(barn.length, "barn", "barn")}. `),
       skjema.gratis_drakt
         ? "Alle barn i familiemedlemskapet får drakt uten kostnad — oppgi størrelse så ligger den klar."
         : "Familiemedlemskapet dekker alle som står på samme adresse."
     ])
   ]));
 
-  boks.append(...seksjonKontakt());
+  // Et kort som tegnes på nytt midt i utfyllingen skal ikke stjele
+  // tastaturet fra forelderen. Sett markøren tilbake der den var.
+  if (fokusNokkel !== null) {
+    const kort = boks.querySelector(`[data-nokkel="${fokusNokkel}"]`);
+    const felt = kort?.querySelector("input[inputmode=numeric]");
+    if (felt) { felt.focus(); felt.setSelectionRange(felt.value.length, felt.value.length); }
+  }
+}
+
+
+function rullTil(nokkel) {
+  const kort = document.querySelector(`[data-nokkel="${nokkel}"]`);
+  if (!kort) return;
+  kort.scrollIntoView({ behavior: "smooth", block: "center" });
+  kort.querySelector("input")?.focus({ preventScroll: true });
 }
 
 function personKort(p) {
@@ -389,7 +409,7 @@ function personKort(p) {
         svar.textContent = `Født ${norskDato(nyIso)} · ${nyAlder} år`;
         // Alderen avgjør om det er barn eller voksen — ikke forelderens gjetning.
         const skalVaere = nyAlder < 18 ? "barn" : "voksen";
-        if (p.rolle !== skalVaere) { p.rolle = skalVaere; tegnPersoner(); }
+        if (p.rolle !== skalVaere) { p.rolle = skalVaere; tegnPersoner($("#personer"), p.nokkel); }
       } else if (p.fodselsnummer.length === 11) {
         svar.className = "inn-fnr-svar feil";
         svar.textContent = "Dette er ikke et gyldig fødselsnummer. Sjekk sifrene.";
@@ -478,7 +498,7 @@ function personKort(p) {
     el("span", {}, `Klubben kan publisere bilder og video av ${p.fornavn || (erBarn ? "barnet" : "meg")} fra trening og stevner. Samtykket kan trekkes tilbake når som helst.`)
   ]));
 
-  return el("div", { class: "inn-person " + p.rolle }, innhold);
+  return el("div", { class: "inn-person " + p.rolle, dataset: { nokkel: String(p.nokkel) } }, innhold);
 }
 
 function seksjonSamtykke() {
