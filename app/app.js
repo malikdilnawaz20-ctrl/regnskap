@@ -18,7 +18,7 @@ import {
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
 import { innmeldingerView } from "./views/innmeldinger.js?v=20260909-1";
 import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260827-1705";
-import { honorarerView } from "./views/honorarer.js?v=20260827-2350";
+import { honorarerView } from "./views/honorarer.js?v=20260914-1";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
 import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";
 import { rapportmalView } from "./views/rapportmal.js?v=20260827-1705";
@@ -1136,6 +1136,58 @@ async function stempleMange(liste, btn) {
   tegn();
 }
 
+/* ---------------------------------------------------------------------
+   Sletting. Bare administratorer — det håndheves av documents_slett og
+   lagringsregelen i 0015, knappen skjules i tillegg.
+
+   Raden slettes først. Går det gjennom, er dokumentet borte fra arkivet,
+   saksflytnummeret er lagt til side så det aldri deles ut igjen, og
+   slettingen står i revisjonssporet. Deretter fjernes filene — både den
+   stemplede og originalen. Feiler det siste, sier vi fra, men dokumentet
+   er slettet.
+   --------------------------------------------------------------------- */
+
+const MAPPER_MED_OPPBEVARING = ["Regnskap", "Tilskudd", "Årsprotokoller", "Årsberetninger", "Avtaler"];
+
+async function slettDokument(d) {
+  const navn = d.tittel || d.filnavn || d.saksflytnr || "dokumentet";
+  const advarsel = MAPPER_MED_OPPBEVARING.includes(d.mappe)
+    ? ` Dokumenter i «${d.mappe}» kan være omfattet av oppbevaringsplikt — regnskapsmateriale skal som hovedregel `
+      + "oppbevares i fem år. Er du usikker, la det ligge."
+    : "";
+  const ok = await bekreft(
+    "Slette dokumentet?",
+    `«${navn}»${d.saksflytnr ? " (" + d.saksflytnr + ")" : ""} fjernes fra arkivet`
+    + (d.storage_path ? " sammen med filen" : "")
+    + ". Dette kan ikke angres. Saksflytnummeret blir ikke brukt på nytt, og slettingen står i revisjonssporet."
+    + advarsel,
+    "Ja, slett");
+  if (!ok) return;
+
+  try {
+    const { data, error } = await db.from("documents").delete().eq("id", d.id).select("id");
+    if (error) throw error;
+    if (!data?.length) {
+      toast("Ikke slettet", "Bare administratorer kan slette dokumenter.", true);
+      return;
+    }
+
+    const stier = [...new Set([d.storage_path, d.original_path].filter(Boolean))];
+    if (stier.length) {
+      const { data: fjernet, error: filFeil } = await db.storage.from("dokumenter").remove(stier);
+      if (filFeil || (fjernet?.length ?? 0) < stier.length) {
+        toast("Slettet, men filen ble liggende",
+          "Dokumentet er fjernet fra arkivet, men filen kunne ikke slettes fra lagringen"
+          + (filFeil ? ": " + filFeil.message : ". Er migrasjon 0015 kjørt?"), true);
+        tegn();
+        return;
+      }
+    }
+    toast("Slettet", `«${navn}» er fjernet fra arkivet.`);
+    tegn();
+  } catch (e) { visFeil(e, "Sletting"); }
+}
+
 async function dokumenter() {
   const { data, error } = await velgFra("documents", "*").order("opprettet", { ascending: false });
   if (error) throw error;
@@ -1200,6 +1252,11 @@ async function dokumenter() {
                 if (error) return visFeil(error, "Åpning");
                 window.open(url.signedUrl, "_blank", "noopener");
               }
+            }) : null,
+            erAdmin() ? knapp("Slett", {
+              klasse: "danger sm",
+              tittel: "Slett " + (f.saksflytnr || "dokumentet"),
+              ved: () => slettDokument(f)
             }) : null
           ]))
         ])))
@@ -1267,7 +1324,7 @@ async function revisjonsspor() {
 
   const HANDLING = { insert: ["Opprettet", "green"], update: ["Endret", "blue"], delete: ["Slettet", "red"] };
   const TABELL = {
-    members: "medlem", transactions: "bilag", organization_users: "brukertilgang",
+    members: "medlem", transactions: "bilag", organization_users: "brukertilgang", documents: "dokument",
     payment_claims: "betalingskrav", supplier_invoices: "regning"
   };
 

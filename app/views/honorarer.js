@@ -23,6 +23,11 @@ const HONORAR_NAVN = new Map([
   ["FIKEN-2025-0167", "Aman Malik"]
 ]);
 
+const BEKREFTEDE_HONORARMOTTAKERE = new Set([
+  "ahmet", "aman", "aman malik", "amir ali", "amir malik", "aneesa malik",
+  "elias", "hizzar", "hizzar ali", "monica", "subhan", "truls"
+]);
+
 const STORE_UTBETALINGER = new Map([
   ["FIKEN-2025-0135", { konto: "4111.15.93777", original: "Bedrterm oppgave Til: 4111.15.93777" }],
   ["FIKEN-2025-0138", { konto: "1204.62.69215", original: "Bedrterm oppgave Til: 1204.62.69215" }],
@@ -36,6 +41,11 @@ const LEVERANDORPOSTER = new Set([
 
 function erHonorarPdf(fil) { return /^honorar(bilag|oppgave)-/.test(fil.filnavn || ""); }
 function mottaker(t) { return HONORAR_NAVN.get(t.bilagsnummer) || t.motpart || ""; }
+function erBekreftetHonorar(t) {
+  return HONORAR_NAVN.has(t.bilagsnummer)
+    || (/honorar/i.test(t.categories?.navn || "")
+      && BEKREFTEDE_HONORARMOTTAKERE.has(mottaker(t).trim().toLowerCase()));
+}
 function slug(tekst) { return tekst.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 async function hentData(aar) {
   const [{ data: txn, error }, { data: vedlegg, error: vedleggFeil }, { data: kategorier, error: kategoriFeil }] = await Promise.all([
@@ -53,9 +63,9 @@ async function hentData(aar) {
     liste.push(fil); vedleggMap.set(fil.transaction_id, liste);
   }
   const alle = txn || [];
-  const sikre = alle.filter(t => HONORAR_NAVN.has(t.bilagsnummer));
+  const sikre = alle.filter(erBekreftetHonorar);
   const uklare = alle.filter(t => STORE_UTBETALINGER.has(t.bilagsnummer)
-    || (!LEVERANDORPOSTER.has(t.bilagsnummer) && /honorar/i.test(t.categories?.navn || "") && !HONORAR_NAVN.has(t.bilagsnummer)));
+    || (!LEVERANDORPOSTER.has(t.bilagsnummer) && /honorar/i.test(t.categories?.navn || "") && !erBekreftetHonorar(t)));
   return { sikre, uklare, vedleggMap, kategorier: kategorier || [] };
 }
 
@@ -200,7 +210,7 @@ async function byggAvklaringsrapport(rader) {
 }
 
 async function bygg() {
-  let aar = 2025;
+  let aar = new Date().getFullYear();
   const rot = el("div", { class: "stack" });
   const tegn = async () => {
     rot.replaceChildren(laster("Henter honorarer ..."));
@@ -208,7 +218,10 @@ async function bygg() {
       const { sikre, uklare, vedleggMap, kategorier } = await hentData(aar);
       const utenPdf = sikre.filter(t => !(vedleggMap.get(t.id) || []).some(erHonorarPdf));
       const total = sikre.reduce((sum, t) => sum + t.belop_ore, 0);
-      const aarVelger = velg("aar", [{ verdi: "2025", tekst: "2025" }, { verdi: "2024", tekst: "2024" }], String(aar), { "aria-label": "Regnskapsår" });
+      const aarValg = [...new Set([new Date().getFullYear(), 2025, 2024])]
+        .sort((a, b) => b - a)
+        .map(verdi => ({ verdi: String(verdi), tekst: String(verdi) }));
+      const aarVelger = velg("aar", aarValg, String(aar), { "aria-label": "Regnskapsår" });
       aarVelger.onchange = () => { aar = Number(aarVelger.value); tegn(); };
       const pdfKandidater = utenPdf.length ? utenPdf : sikre;
       const masseknapp = knapp(utenPdf.length ? "Lag manglende PDF-er" : "Oppdater alle PDF-er", { ikon: "dokument", klasse: "primary", ved: async e => {
