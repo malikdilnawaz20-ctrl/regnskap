@@ -18,6 +18,7 @@ import {
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
 import { innmeldingerView } from "./views/innmeldinger.js?v=20260909-1";
 import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260827-1705";
+import { bankView } from "./views/bank.js?v=20260916-1";
 import { honorarerView } from "./views/honorarer.js?v=20260914-1";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
 import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";
@@ -38,6 +39,7 @@ const RUTER = {
   innmeldinger: { tittel: "Innmeldinger", ikon: "last", view: () => innmeldingerView },
   betalinger:  { tittel: "Betalinger", ikon: "betaling", view: () => kontingentView },
   okonomi:     { tittel: "Økonomi", ikon: "okonomi", view: () => okonomiView },
+  bank:        { tittel: "Bank", ikon: "betaling", view: () => bankView, under: "okonomi" },
   honorarer:   { tittel: "Honorarer", ikon: "betaling", view: () => honorarerView },
   attestering: { tittel: "Attestering", ikon: "ok", view: () => attesteringView, under: "okonomi" },
   faktura:     { tittel: "Faktura", ikon: "kvittering", view: () => fakturaView },
@@ -61,11 +63,11 @@ const HOVEDNAV = [
   { gruppe: "Arkiv", punkter: ["dokumenter"] }
 ];
 
-const OKONOMI_UNDER = ["attestering", "regnskapsrapporter"];
+const OKONOMI_UNDER = ["bank", "attestering", "regnskapsrapporter"];
 const INNST_UNDER = ["selskap", "brukere", "revisjonsspor"];
 
 /** Revisor har kun lesetilgang til tall og bilag \u2014 ingen medlemsdata, ingen innstillinger, ingen eksport. */
-const REVISOR_RUTER = ["oversikt", "okonomi", "regnskapsrapporter", "rapporter", "hjelp", "profil"];
+const REVISOR_RUTER = ["oversikt", "okonomi", "bank", "regnskapsrapporter", "rapporter", "hjelp", "profil"];
 
 let ruteNaa = "oversikt";
 let okonomiApen = false;
@@ -419,7 +421,7 @@ function byggMobilnav() {
   }
   return el("nav", { class: "mobilnav" }, [
     p("oversikt", "Oversikt"), p("medlemmer", "Medlemmer"),
-    p("okonomi", "Økonomi"), p("betalinger", "Betaling"), p("innstillinger", "Mer")
+    p("okonomi", "Økonomi"), p("bank", "Bank"), p("innstillinger", "Mer")
   ]);
 }
 

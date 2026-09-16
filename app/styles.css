@@ -645,3 +645,15 @@ input[type=checkbox]{width:17px;height:17px;accent-color:var(--teal)}
 .main{min-width:0;max-width:100%}
 .card, .stack, .grid, .split, .between, .tabellverktoy, .card-body{min-width:0}
 .tablewrap{max-width:100%}
+
+/* Bank */
+.bank-account-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:16px;align-items:stretch}
+.bank-account-hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;padding:22px 24px;border:1px solid var(--line-sterk);border-radius:var(--r);background:linear-gradient(110deg,var(--teal-soft),var(--panel));box-shadow:var(--skygge-lav)}
+.bank-saldo{font-size:2.2rem;font-weight:700;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
+.bank-avstemt{display:flex;flex-direction:column;align-items:flex-end;gap:8px;color:var(--muted);font-size:.8rem;text-align:right}
+.bank-filter{margin-bottom:16px}
+@media (max-width:900px){
+  .bank-account-row{grid-template-columns:1fr}
+  .bank-account-hero{align-items:flex-start;flex-direction:column}
+  .bank-avstemt{align-items:flex-start;text-align:left}
+}
