@@ -29,6 +29,7 @@ async function hentBanktransaksjoner(accountId) {
   const { data, error } = await velgFra("transactions",
     "id,bilagsnummer,dato,type,beskrivelse,belop_ore,motpart,account_id")
     .eq("account_id", accountId)
+    .like("bilagsnummer", `BANK-${BANKAAR}-%`)
     .gte("dato", `${BANKAAR}-01-01`)
     .lte("dato", `${BANKAAR}-12-31`)
     .order("dato", { ascending: false })

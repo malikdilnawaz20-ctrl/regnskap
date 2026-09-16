@@ -138,7 +138,8 @@ export async function hentOkonomiTall() {
     const aarTxn = synligeTxn.filter(t => t.regnskapsaar === aar);
     const kontoIds = new Set((kontoer || []).map(k => k.id));
     const aapning = (kontoer || []).reduce((s, k) => s + (k.aapningssaldo_ore || 0), 0);
-    const bevegelse = synligeTxn.filter(t => t.dato >= `${aar}-01-01` && kontoIds.has(t.account_id)).reduce((s, t) =>
+    const bevegelse = synligeTxn.filter(t => t.dato >= `${aar}-01-01` && kontoIds.has(t.account_id)
+      && String(t.bilagsnummer || "").startsWith(`BANK-${aar}-`)).reduce((s, t) =>
       s + (t.type === "inntekt" ? t.belop_ore : t.type === "utgift" ? -t.belop_ore : 0), 0);
     const ubetalt = (krav || []).reduce((s, k) => s + Math.max(0, (k.belop_ore || 0) - (k.betalt_ore || 0)), 0);
     const inntekt_ore = aarTxn.filter(t => t.type === "inntekt").reduce((s, t) => s + t.belop_ore, 0);
