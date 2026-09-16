@@ -18,7 +18,7 @@ import {
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
 import { innmeldingerView } from "./views/innmeldinger.js?v=20260909-1";
 import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260916-2";
-import { bankView } from "./views/bank.js?v=20260916-2";
+import { bankView } from "./views/bank.js?v=20260916-3";
 import { honorarerView } from "./views/honorarer.js?v=20260914-1";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
 import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";

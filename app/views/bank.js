@@ -68,7 +68,9 @@ export const bankView = {
     if (!S.orgId) return el("div", { class: "empty" }, "Velg en organisasjon først.");
 
     try {
-      const kontoer = await hentBankkontoer();
+      const kontoer = (await hentBankkontoer()).sort((a, b) =>
+        Number(b.kontonummer === "2220.29.21373") - Number(a.kontonummer === "2220.29.21373")
+      );
       if (!kontoer.length) return kort({
         tittel: "Ingen bankkontoer",
         beskrivelse: "Legg til en aktiv bankkonto under Innstillinger før du importerer kontoutskriften.",
