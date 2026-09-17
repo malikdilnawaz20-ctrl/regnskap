@@ -743,14 +743,15 @@ async function hentResultatregnskap(aar) {
 }
 
 async function hentBalanse() {
+  const aar = aarNaa();
   const { data: kontoer, error: e1 } = await velgFra("accounts", "id,navn,aapningssaldo_ore").eq("aktiv", true);
   if (e1) throw e1;
-  const { data: txn, error: e2 } = await velgFra("transactions", "account_id,type,belop_ore");
+  const { data: txn, error: e2 } = await velgFra("transactions", "account_id,type,belop_ore,dato,bilagsnummer");
   if (e2) throw e2;
 
   const bevegelse = new Map();
   for (const t of txn || []) {
-    if (!t.account_id) continue;
+    if (!t.account_id || !String(t.bilagsnummer || "").startsWith(`BANK-${aar}-`)) continue;
     const delta = t.type === "inntekt" ? t.belop_ore : t.type === "utgift" ? -t.belop_ore : 0;
     bevegelse.set(t.account_id, (bevegelse.get(t.account_id) || 0) + delta);
   }
