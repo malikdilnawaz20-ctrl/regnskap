@@ -54,7 +54,7 @@ const RUTER = {
   brukere:     { tittel: "Brukere", ikon: "bruker", under: "innstillinger" },
   selskap:     { tittel: "Selskapsinformasjon", ikon: "bygg", under: "innstillinger" },
   revisjonsspor: { tittel: "Revisjonsspor", ikon: "logg", under: "innstillinger" },
-  fullmakter:  { tittel: "Fullmakter", ikon: "logg", under: "innstillinger", view: () => fullmakterView },
+  fullmakter:  { tittel: "Styret og fullmakter", ikon: "logg", under: "innstillinger", view: () => fullmakterView },
   hjelp:       { tittel: "Hjelp", ikon: "hjelp" },
   profil:      { tittel: "Min profil", ikon: "bruker", skjult: true }
 };
@@ -1006,7 +1006,7 @@ async function innstillinger() {
       innhold: el("div", { class: "oppm" }, [
         rad("selskap", "Selskapsinformasjon", "Navn, organisasjonsnummer og hvem som attesterer", "bygg"),
         rad("brukere", "Brukere og roller", "Hvem har tilgang, og hva får de lov til", "bruker"),
-        rad("fullmakter", "Fullmakter", "Hvem som kan signere protokoller på vegne av styret", "logg"),
+        rad("fullmakter", "Styret og fullmakter", "Hvem som sitter i styret, og hvem som kan signere på styrets vegne", "logg"),
         rad("revisjonsspor", "Revisjonsspor", "Alle endringer, i rekkefølge", "logg"),
         rad("profil", "Min profil", "Navn, kontaktinfo og passord", "medlemmer")
       ])
@@ -1345,7 +1345,7 @@ async function revisjonsspor() {
   const TABELL = {
     members: "medlem", transactions: "bilag", organization_users: "brukertilgang", documents: "dokument",
     payment_claims: "betalingskrav", supplier_invoices: "regning",
-    mandates: "fullmakt", signature_requests: "signeringsforespørsel", signatures: "signatur"
+    mandates: "fullmakt", signature_requests: "signeringsforespørsel", signatures: "signatur", board_members: "styremedlem"
   };
 
   return kort({

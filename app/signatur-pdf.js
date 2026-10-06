@@ -15,9 +15,10 @@ const TEAL = [0.0, 0.42, 0.45];
 const GRAA = [0.45, 0.47, 0.48];
 
 const SIGNERT_SOM = {
-  styremedlem: "Styremedlem",
+  styremedlem: "Styremedlem — innlogget signatur",
+  styremedlem_i_mote: "Styremedlem — enkel signatur",
   fullmektig_for_styret: "På vegne av styret, etter fullmakt",
-  administrator: "På vegne av styret (administrator)"
+  administrator: "På vegne av styret"
 };
 
 // Helvetica kan bare WinAnsi. Alt annet (emoji, →, ł …) byttes ut, så
@@ -109,6 +110,7 @@ export async function lagSignertPdf(original, info) {
 
   par("Organisasjon", [info.orgNavn, info.orgnr ? "org.nr " + info.orgnr : null].filter(Boolean).join(" · "));
   par("Dokument", [info.tittel, info.mappe ? "(" + info.mappe + ")" : null].filter(Boolean).join(" "));
+  if (info.anledning) par("Gjelder", info.anledning);
   if (info.dokumentdato) par("Dokumentdato", d8(info.dokumentdato));
   if (info.hash) par("Dokumentets fingeravtrykk (SHA-256, før signering)", info.hash, { size: 8 });
 
@@ -117,17 +119,26 @@ export async function lagSignertPdf(original, info) {
   linje(20);
 
   for (const s of info.signaturer || []) {
-    plass(s.fullmakt ? 112 : 100);
-    side.drawRectangle({ x: marg - 10, y: y - 86, width: width - marg * 2 + 20, height: 104, color: c([0.965, 0.975, 0.975]) });
+    let png = null;
+    if (s.bilde) { try { png = await pdf.embedPng(s.bilde); } catch (e) { console.warn("Signaturbilde kunne ikke legges inn:", e); } }
+    const ekstra = (s.fullmakt ? 14 : 0) + (s.styret ? 14 * Math.ceil((s.styret.length + 24) / 95) : 0);
+    plass(100 + ekstra);
+    side.drawRectangle({ x: marg - 10, y: y - 86 - ekstra, width: width - marg * 2 + 20, height: 104 + ekstra, color: c([0.965, 0.975, 0.975]) });
     tekst(s.navn, { size: 12.5, f: fet });
     const idW = font.widthOfTextAtSize(trygg(s.signatur_id), 9);
     tekst(s.signatur_id, { x: width - marg - idW, size: 9, farge: TEAL });
+    if (png) {
+      // Håndtegnet signatur til høyre i blokken, under ID-en
+      const h = 44, w = Math.min(170, png.width * (h / png.height));
+      side.drawImage(png, { x: width - marg - w, y: y - 16 - h, width: w, height: h });
+    }
     linje(15);
     tekst([s.rolle, SIGNERT_SOM[s.signert_som] || s.signert_som].filter(Boolean).join(" · "), { size: 9.5, farge: GRAA });
     linje(15);
     if (s.fullmakt) {
       brytTekst("Fullmakt " + s.fullmakt.nummer + " — " + s.fullmakt.vedtak + ", " + d8(s.fullmakt.vedtaksdato), 9);
     }
+    if (s.styret) brytTekst("Styret på signaturdatoen: " + s.styret, 9);
     tekst("Dato på dokumentet: " + d8(s.signaturdato), { size: 10, f: fet });
     linje(14);
     tekst("Signert elektronisk " + t8(s.signert_tidspunkt) + " · nivå: intern e-signatur i Saksflyt", { size: 8.5, farge: GRAA });

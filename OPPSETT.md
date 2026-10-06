@@ -24,7 +24,7 @@ Du trenger: en Supabase-konto, en GitHub-konto, og tilgang til DNS for `sakflyt.
 | 1 | `supabase/migrations/0001_init.sql` | Alle tabeller, rad-nivå-sikkerhet, kontoplan, revisjonslogg |
 | 2 | `supabase/migrations/0002_attestering.sql` | Regninger og godkjenning av to personer |
 | 3 | `supabase/seed_klubb.sql` | Skoger og Fjell kampsportklubb med aktiviteter, grupper og satser |
-| 4–19 | `supabase/migrations/0003` … `0017` | Senere moduler, i nummerrekkefølge. `0017_e_signatur.sql` gir e-signatur på dokumenter, fullmakter og den offentlige verifiseringssiden |
+| 4–20 | `supabase/migrations/0003` … `0018` | Senere moduler, i nummerrekkefølge. `0017_e_signatur.sql` gir e-signatur på dokumenter, fullmakter og verifisering; `0018_styret.sql` gir styreregister og enkel signatur i møte |
 
 Skjemaet er testet mot PostgreSQL 16 og kjører rent på et tomt prosjekt.
 

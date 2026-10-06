@@ -87,7 +87,7 @@ Status: planlegges, søkt, innvilget, avslått, rapportering pågår, ferdig rap
 
 ## E-signatur på dokumenter (bygget, oktober 2026)
 
-Filer: `supabase/migrations/0017_e_signatur.sql`, `app/views/signering.js`, `app/signatur-pdf.js`, `verifiser.html`. Spesifikasjonen ligger i prosjektet som `spesifikasjon/e-signatur-protokoller.md`.
+Filer: `supabase/migrations/0017_e_signatur.sql`, `0018_styret.sql`, `app/views/signering.js`, `app/signatur-pdf.js`, `verifiser.html`. Spesifikasjonen ligger i prosjektet som `spesifikasjon/e-signatur-protokoller.md`.
 
 Det som gjelder, og som ikke skal endres uten god grunn:
 
@@ -97,6 +97,10 @@ Det som gjelder, og som ikke skal endres uten god grunn:
 - **Databasen bestemmer.** `vern_signatur()` avgjør hvem som får signere; grensesnittet skjuler bare knappene. Ikke flytt regler til klientsiden.
 - **Signert PDF** lages i nettleseren med pdf-lib (signaturside bakerst) og lagres på `documents.signert_path`. Feiler det, finnes «Lag signert PDF» i arkivet — signaturen i databasen er det som gjelder.
 - **Verifisering** er offentlig: `verifiser.html?id=SIG-XXXX-XXXX` kaller `verifiser_signatur()` som anon. Dokumenter merket «kun styret» viser ikke tittelen utad.
+
+- **Tre måter å signere på** (`signature_requests.type`): `mote` = *Enkel signatur* (enheten går rundt bordet, styremedlemmer fra `board_members` trykker på navnet sitt og tegner evt. signatur — ingen konto), `styremedlemmer` = *Innlogget signatur* (hver bruker logger inn og bekrefter med passord), `fullmektig` = på vegne av styret. Styret registreres under Innstillinger → Styret og fullmakter; `signatures.styret_tekst` fryser sammensetningen når noen signerer på styrets vegne.
+- **Vis aldri hvem som holdt enheten** ved enkel signatur. Det ligger i `signatures.user_id` for revisjonssporet, men skal ikke på signatursiden eller verifiseringen. Og skriv «på vegne av styret», aldri «administrator», i det folk ser.
+- **Anledning** (`signature_requests.anledning`): fem faste valg + fritekst. Står på signatursiden og i verifiseringen.
 
 Neste steg når det trengs: BankID via leverandør (`signatures.nivaa = 'bankid'`), e-postvarsel ved signeringsforespørsel.
 

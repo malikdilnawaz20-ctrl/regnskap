@@ -11,7 +11,7 @@ import {
   el, svg, kort, merke, tabell, felt, skjemaModal, bekreft, toast, visFeil,
   knapp, dato, tidspunkt, iDag, tomTilstand, antall, db
 } from "../lib.js";
-import { S, erAdmin, kanSkrive, velgFra, settInn, paaNytt, gaTil } from "../store.js";
+import { S, VERV, erAdmin, kanSkrive, velgFra, settInn, paaNytt, gaTil } from "../store.js";
 import { lagSignertPdf, hashAvFil } from "../signatur-pdf.js";
 
 export const STATUS = {
@@ -29,9 +29,22 @@ export const OMFANG = {
 };
 
 const SIGNERT_SOM = {
-  styremedlem: "Styremedlem",
+  styremedlem: "Styremedlem, innlogget",
+  styremedlem_i_mote: "Styremedlem, enkel signatur",
   fullmektig_for_styret: "På vegne av styret",
-  administrator: "På vegne av styret (administrator)"
+  administrator: "På vegne av styret"
+};
+
+export const ANLEDNINGER = ["Årsmøte", "Ekstraordinær generalforsamling", "Styremøte", "Avtale", "Vedtekter"];
+const anledningForMappe = (mappe) => ({
+  "Årsprotokoller": "Årsmøte", "Ekstraordinære generalforsamlinger": "Ekstraordinær generalforsamling",
+  "Styremøter": "Styremøte", "Avtaler": "Avtale", "Vedtekter": "Vedtekter"
+})[mappe] || "Annet";
+
+export const TYPE_TEKST = {
+  mote: "Enkel signatur",
+  styremedlemmer: "Innlogget signatur",
+  fullmektig: "Fullmektig for styret"
 };
 
 const navnPaa = (p) => p ? (((p.fornavn || "") + " " + (p.etternavn || "")).trim() || p.epost || "Ukjent") : "—";
@@ -47,7 +60,8 @@ export async function hentForesporsler() {
   const { data, error } = await db.from("signature_requests")
     .select("*, oppretter:opprettet_av(fornavn,etternavn,epost), " +
             "mottakere:signature_request_recipients(user_id, profiles(fornavn,etternavn,epost)), " +
-            "signaturer:signatures(id, user_id, navn_tekst, rolle_tekst, signert_som, signaturdato, signert_tidspunkt, signatur_id, mandate_id)")
+            "styre:signature_request_board(board_member_id, board_members(navn, verv, rekkefolge)), " +
+            "signaturer:signatures(id, user_id, board_member_id, navn_tekst, rolle_tekst, signert_som, signaturdato, signert_tidspunkt, signatur_id, mandate_id, signaturbilde_path)")
     .eq("organization_id", S.orgId).order("opprettet", { ascending: false });
   if (error) throw error;
   return data || [];
@@ -83,14 +97,24 @@ async function minFullmakt(mappe) {
 export async function hvordanKanJegSignere(r, dok) {
   if (!r || !["venter", "delvis"].includes(r.status)) return null;
   const jeg = S.bruker.id;
-  if ((r.signaturer || []).some(s => s.user_id === jeg)) return null;
+  if (r.type !== "mote" && (r.signaturer || []).some(s => s.user_id === jeg)) return null;
   if (r.type === "styremedlemmer") {
     return (r.mottakere || []).some(m => m.user_id === jeg) ? "styremedlem" : null;
+  }
+  if (r.type === "mote") {
+    // Enkel signatur: den som holder enheten registrerer styremedlemmenes signaturer
+    return kanSkrive() && gjenstaarIMote(r).length ? "styremedlem_i_mote" : null;
   }
   const mappe = dok?.mappe ?? r.documents?.mappe;
   if (await minFullmakt(mappe)) return "fullmektig_for_styret";
   if (erAdmin()) return "administrator";
   return null;
+}
+
+/** Styremedlemmer som ikke har signert ennå (enkel signatur). */
+function gjenstaarIMote(r) {
+  const signert = new Set((r.signaturer || []).map(s => s.board_member_id).filter(Boolean));
+  return (r.styre || []).filter(b => !signert.has(b.board_member_id));
 }
 
 /** Brukes av forsiden. */
@@ -117,7 +141,9 @@ export function signeringCelle(dok, apne, tegn) {
     const [tekst, farge] = STATUS[r.status] || [r.status, "neutral"];
     deler.push(merke(tekst, farge));
     if (r.type === "styremedlemmer") {
-      deler.push(el("span", { class: "who" }, `${(r.signaturer || []).length} av ${(r.mottakere || []).length} har signert`));
+      deler.push(el("span", { class: "who" }, `Innlogget signatur · ${(r.signaturer || []).length} av ${(r.mottakere || []).length} har signert`));
+    } else if (r.type === "mote") {
+      deler.push(el("span", { class: "who" }, `Enkel signatur · ${(r.signaturer || []).length} av ${(r.styre || []).length} har signert`));
     } else {
       deler.push(el("span", { class: "who" }, "Fullmektig på vegne av styret"));
     }
@@ -158,56 +184,85 @@ export function signeringKnapper(dok, apne, tegn) {
    ===================================================================== */
 
 export async function sendTilSignering(dok) {
-  const { data: brukere, error } = await db.from("organization_users")
-    .select("user_id, rolle, styreverv, profiles(fornavn,etternavn,epost)")
-    .eq("organization_id", S.orgId).eq("aktiv", true).neq("rolle", "revisor");
-  if (error) { visFeil(error, "Henting"); return false; }
-
-  const styret = (brukere || []).filter(b => b.styreverv && !["Ingen verv", "Revisor", "Valgkomité"].includes(b.styreverv));
-  const forslag = styret.length ? styret : (brukere || []);
-
-  const mottakerBoks = el("div", { class: "stack", style: "gap:6px" });
-  const avkryss = {};
-  for (const b of forslag) {
-    const cb = el("input", { type: "checkbox", checked: !!b.styreverv });
-    avkryss[b.user_id] = cb;
-    mottakerBoks.append(el("label", { class: "row", style: "display:flex;gap:8px;align-items:center;font-weight:500" }, [
-      cb, navnPaa(b.profiles), el("span", { class: "dim" }, b.styreverv || b.rolle)
-    ]));
-  }
-  const mottakerFelt = el("div", { class: "field", style: "margin-top:14px" }, [
-    el("label", {}, "Hvem skal signere?"),
-    mottakerBoks,
-    el("span", { class: "hint" }, "Forhåndsvalgt: alle med styreverv. Dokumentet er ferdig når alle har signert.")
+  const [{ data: brukere, error }, { data: styret, error: sFeil }] = await Promise.all([
+    db.from("organization_users").select("user_id, rolle, styreverv, profiles(fornavn,etternavn,epost)")
+      .eq("organization_id", S.orgId).eq("aktiv", true).neq("rolle", "revisor"),
+    db.from("board_members").select("id, navn, verv, fra, til").eq("organization_id", S.orgId).order("rekkefolge").order("navn")
   ]);
+  if (error || sFeil) { visFeil(error || sFeil, "Henting"); return false; }
+  const i = iDag();
+  const sitter = (styret || []).filter(b => (!b.fra || b.fra <= i) && (!b.til || b.til >= i));
 
-  const typeValg = [
-    { verdi: "fullmektig", tekst: "Fullmektig signerer på vegne av styret" },
-    { verdi: "styremedlemmer", tekst: "Hvert styremedlem signerer selv" }
+  /* --- måte: radioknapper --- */
+  const MAATER = [
+    ["mote", "Enkel signatur", "Enheten går rundt bordet. Hvert styremedlem trykker på navnet sitt og signerer — ingen innlogging."],
+    ["styremedlemmer", "Innlogget signatur", "Hver person logger inn i Saksflyt selv og signerer med passord."],
+    ["fullmektig", "Fullmektig for styret", "Én person med fullmakt signerer på vegne av hele styret."]
   ];
+  let maate = sitter.length ? "mote" : "fullmektig";
+  const radioer = {};
+  const maateBoks = el("div", { class: "stack", style: "gap:8px" }, MAATER.map(([verdi, tittel, tekst]) => {
+    const rb = el("input", { type: "radio", name: "maate", value: verdi, checked: verdi === maate });
+    radioer[verdi] = rb;
+    rb.addEventListener("change", () => { maate = verdi; visListe(); });
+    return el("label", { style: "display:flex;gap:10px;align-items:flex-start;cursor:pointer" }, [
+      rb, el("span", {}, [el("b", {}, tittel), el("span", { class: "hint", style: "display:block" }, tekst)])
+    ]);
+  }));
+
+  /* --- hvem: styremedlemmer (enkel) eller brukere (innlogget) --- */
+  const kryssStyre = {}, kryssBruker = {};
+  const listeStyre = el("div", { class: "stack", style: "gap:6px" }, sitter.map(b => {
+    const cb = el("input", { type: "checkbox", checked: true });
+    kryssStyre[b.id] = cb;
+    return el("label", { style: "display:flex;gap:8px;align-items:center;font-weight:500" }, [cb, b.navn, el("span", { class: "dim" }, b.verv)]);
+  }));
+  if (!sitter.length) listeStyre.append(el("span", { class: "hint" }, "Ingen styremedlemmer er registrert. Legg dem inn under Innstillinger → Styret og fullmakter."));
+  const listeBruker = el("div", { class: "stack", style: "gap:6px" }, (brukere || []).map(b => {
+    const cb = el("input", { type: "checkbox", checked: !!b.styreverv && !["Ingen verv", "Revisor", "Valgkomité"].includes(b.styreverv) });
+    kryssBruker[b.user_id] = cb;
+    return el("label", { style: "display:flex;gap:8px;align-items:center;font-weight:500" }, [cb, navnPaa(b.profiles), el("span", { class: "dim" }, b.styreverv || b.rolle)]);
+  }));
+  const hvemFelt = el("div", { class: "field", style: "margin-top:14px" }, [el("label", {}, "Hvem skal signere?"), listeStyre, listeBruker]);
+  const visListe = () => {
+    listeStyre.style.display = maate === "mote" ? "" : "none";
+    listeBruker.style.display = maate === "styremedlemmer" ? "" : "none";
+    hvemFelt.style.display = maate === "fullmektig" ? "none" : "";
+  };
+  visListe();
+
+  /* --- hva gjelder signeringen --- */
+  const anledningValg = el("select", {}, [...ANLEDNINGER, "Annet"].map(a => el("option", { value: a }, a)));
+  anledningValg.value = anledningForMappe(dok.mappe);
+  const anledningFri = el("input", { type: "text", placeholder: "Skriv hva det gjelder", style: "margin-top:6px" });
+  const visFri = () => { anledningFri.style.display = anledningValg.value === "Annet" ? "" : "none"; };
+  anledningValg.addEventListener("change", visFri); visFri();
 
   const svar = await skjemaModal({
     tittel: "Send til signering",
     beskrivelse: (dok.tittel || dok.filnavn) + (dok.saksflytnr ? " · " + dok.saksflytnr : ""),
     felter: [
-      { navn: "type", label: "Hvordan skal det signeres?", type: "select", valg: typeValg, bredde: "full" },
       { navn: "dokumentdato", label: "Dokumentdato (møtedato)", type: "date", verdi: dok.dokumentdato || "", hint: "Signaturdatoen kan ikke settes tidligere enn denne." },
-      { navn: "melding", label: "Melding til den som skal signere", plassholder: "Valgfritt" }
+      { navn: "melding", label: "Melding", plassholder: "Valgfritt" }
     ],
-    ekstra: mottakerFelt,
+    ekstra: el("div", {}, [
+      el("div", { class: "field", style: "margin-top:14px" }, [el("label", {}, "Hva gjelder signeringen?"), anledningValg, anledningFri]),
+      el("div", { class: "field", style: "margin-top:14px" }, [el("label", {}, "Hvordan skal det signeres?"), maateBoks]),
+      hvemFelt
+    ]),
     lagreTekst: "Send til signering",
     onLagre: async (d) => {
-      const valgte = Object.entries(avkryss).filter(([, cb]) => cb.checked).map(([id]) => id);
-      if (d.type === "styremedlemmer" && !valgte.length) {
-        toast("Ingen valgt", "Velg minst én person som skal signere.", true); return false;
-      }
-      // Dokumentdato lagres på dokumentet, slik at nedre grense for
-      // signaturdato håndheves i databasen.
+      const valgteStyre = Object.entries(kryssStyre).filter(([, cb]) => cb.checked).map(([id]) => id);
+      const valgteBrukere = Object.entries(kryssBruker).filter(([, cb]) => cb.checked).map(([id]) => id);
+      if (maate === "mote" && !valgteStyre.length) { toast("Ingen valgt", "Velg minst ett styremedlem.", true); return false; }
+      if (maate === "styremedlemmer" && !valgteBrukere.length) { toast("Ingen valgt", "Velg minst én person.", true); return false; }
+      const anledning = anledningValg.value === "Annet" ? anledningFri.value.trim() : anledningValg.value;
+      if (!anledning) { toast("Mangler", "Skriv hva signeringen gjelder.", true); return false; }
+
       if (d.dokumentdato && d.dokumentdato !== (dok.dokumentdato || "")) {
         const { error } = await db.from("documents").update({ dokumentdato: d.dokumentdato }).eq("id", dok.id);
         if (error) throw error;
       }
-      // Fingeravtrykk av filen slik den er nå
       let hash = null;
       if (dok.storage_path) {
         const { data: blob, error: nedFeil } = await db.storage.from("dokumenter").download(dok.storage_path);
@@ -215,21 +270,25 @@ export async function sendTilSignering(dok) {
         hash = await hashAvFil(blob);
       }
       const { data: ny, error } = await settInn("signature_requests", {
-        document_id: dok.id, type: d.type, dokument_hash: hash, melding: d.melding || null
+        document_id: dok.id, type: maate, dokument_hash: hash, melding: d.melding || null, anledning
       }).select("id").single();
       if (error) throw error;
-      if (d.type === "styremedlemmer") {
+      if (maate === "styremedlemmer") {
         const { error: mFeil } = await db.from("signature_request_recipients")
-          .insert(valgte.map(user_id => ({ request_id: ny.id, user_id })));
+          .insert(valgteBrukere.map(user_id => ({ request_id: ny.id, user_id })));
         if (mFeil) throw mFeil;
+      } else if (maate === "mote") {
+        const { error: bFeil } = await db.from("signature_request_board")
+          .insert(valgteStyre.map(board_member_id => ({ request_id: ny.id, board_member_id })));
+        if (bFeil) throw bFeil;
       }
       return true;
     }
   });
-  // Dokumentdato-oppdateringen skal vises også om brukeren endret den uten å sende
-  if (svar) toast("Sendt", svar.type === "fullmektig"
-    ? "Dokumentet venter på at fullmektig signerer på vegne av styret."
-    : "Dokumentet venter på signaturer fra styret.");
+  if (svar) toast("Klart", maate === "mote"
+    ? "Gå til Signering og trykk «Start enkel signatur» når enheten skal rundt bordet."
+    : maate === "fullmektig" ? "Dokumentet venter på at fullmektig signerer på vegne av styret."
+    : "Dokumentet venter på at hver person logger inn og signerer.");
   return !!svar;
 }
 
@@ -239,6 +298,7 @@ export async function sendTilSignering(dok) {
 
 export async function signer(r, dok) {
   const som = await hvordanKanJegSignere(r, dok);
+  if (som === "styremedlem_i_mote") return enkelSignering(r, dok);
   if (!som) { toast("Kan ikke signere", "Du er ikke bedt om å signere dette dokumentet, eller du har allerede signert.", true); return false; }
 
   const rolleTekst = S.styreverv || S.rolle;
@@ -291,7 +351,7 @@ export async function signer(r, dok) {
 export async function ferdigstillSignertFil(dok) {
   if (dok.signert_path) return dok.signert_path;
   const { data: sign, error } = await db.from("signatures")
-    .select("*, mandates(nummer, vedtak, vedtaksdato), signature_requests(dokument_hash)")
+    .select("*, mandates(nummer, vedtak, vedtaksdato), signature_requests(dokument_hash, anledning)")
     .eq("document_id", dok.id).order("signert_tidspunkt");
   if (error) throw error;
   if (!sign?.length) throw new Error("Dokumentet har ingen signaturer.");
@@ -304,12 +364,20 @@ export async function ferdigstillSignertFil(dok) {
   }
   const fil = await lagSignertPdf(original, {
     orgNavn: S.org.navn, orgnr: S.org.orgnr, tittel: dok.tittel, saksflytnr: dok.saksflytnr,
-    mappe: dok.mappe, dokumentdato: dok.dokumentdato, hash: sign[0].dokument_hash || sign[0].signature_requests?.dokument_hash,
+    mappe: dok.mappe, dokumentdato: dok.dokumentdato, anledning: sign[0].signature_requests?.anledning || null, hash: sign[0].dokument_hash || sign[0].signature_requests?.dokument_hash,
     verifiserUrl: VERIFISER_URL,
-    signaturer: sign.map(s => ({
-      navn: s.navn_tekst, rolle: s.rolle_tekst, signert_som: s.signert_som,
-      signaturdato: s.signaturdato, signert_tidspunkt: s.signert_tidspunkt,
-      signatur_id: s.signatur_id, fullmakt: s.mandates || null
+    signaturer: await Promise.all(sign.map(async s => {
+      let bilde = null;
+      if (s.signaturbilde_path) {
+        const { data: png } = await db.storage.from("dokumenter").download(s.signaturbilde_path);
+        if (png) bilde = new Uint8Array(await png.arrayBuffer());
+      }
+      return {
+        navn: s.navn_tekst, rolle: s.rolle_tekst, signert_som: s.signert_som,
+        signaturdato: s.signaturdato, signert_tidspunkt: s.signert_tidspunkt,
+        signatur_id: s.signatur_id, fullmakt: s.mandates || null, styret: s.styret_tekst || null,
+        bilde
+      };
     }))
   });
   const sti = `${S.orgId}/signert-${Date.now()}-${fil.name.replace(/[^\w.\-]/g, "_")}`;
@@ -395,7 +463,8 @@ async function bygg() {
           el("span", { class: "tekst" }, [
             el("b", {}, (d.tittel || d.filnavn || "Dokument") + (d.saksflytnr ? " · " + d.saksflytnr : "")),
             el("span", {}, [
-              som === "styremedlem" ? "Du signerer som styremedlem" : "Du signerer på vegne av styret",
+              som === "styremedlem_i_mote" ? `Enkel signatur — ${gjenstaarIMote(r).length} av ${(r.styre || []).length} gjenstår`
+                : som === "styremedlem" ? "Du signerer som styremedlem" : "Du signerer på vegne av styret",
               r.melding ? " — «" + r.melding + "»" : "",
               " · sendt av " + navnPaa(r.oppretter) + " " + tidspunkt(r.opprettet)
             ])
@@ -403,7 +472,7 @@ async function bygg() {
           el("span", { class: "actions" }, [
             d.storage_path ? knapp("Les", { klasse: "stille sm", ved: () => apne_(d.storage_path) }) : null,
             knapp("Avvis", { klasse: "stille sm", ved: async () => { if (await avvis(r)) tegn(); } }),
-            knapp("Signer", { klasse: "primary sm", ved: async () => { if (await signer(r, d)) tegn(); } })
+            knapp(som === "styremedlem_i_mote" ? "Start enkel signatur" : "Signer", { klasse: "primary sm", ved: async () => { if (await signer(r, d)) tegn(); } })
           ])
         ]);
       }))
@@ -422,8 +491,8 @@ async function bygg() {
         const sign = r.signaturer || [];
         const kanTrekke = ["venter", "delvis"].includes(r.status) && !sign.length && (r.opprettet_av === S.bruker.id || erAdmin());
         return el("tr", {}, [
-          el("td", { class: "strong" }, [d.tittel || d.filnavn || "—", d.saksflytnr && el("span", { class: "who mono" }, d.saksflytnr)]),
-          el("td", {}, r.type === "fullmektig" ? "Fullmektig for styret" : `Styremedlemmer (${(r.mottakere || []).length})`),
+          el("td", { class: "strong" }, [d.tittel || d.filnavn || "—", r.anledning && el("span", { class: "who" }, r.anledning), d.saksflytnr && el("span", { class: "who mono" }, d.saksflytnr)]),
+          el("td", {}, TYPE_TEKST[r.type] + (r.type === "mote" ? ` (${(r.styre || []).length})` : r.type === "styremedlemmer" ? ` (${(r.mottakere || []).length})` : "")),
           el("td", {}, [merke(tekst, farge), r.status === "avvist" && r.avvist_arsak && el("span", { class: "who" }, r.avvist_arsak)]),
           el("td", {}, sign.length
             ? el("div", { class: "stack", style: "gap:2px" }, sign.map(s => el("span", { style: "font-size:.83rem" }, [
@@ -431,6 +500,7 @@ async function bygg() {
               ])))
             : el("span", { class: "dim" }, r.type === "styremedlemmer"
                 ? "Venter: " + (r.mottakere || []).map(m => navnPaa(m.profiles)).join(", ")
+                : r.type === "mote" ? "Venter: " + (r.styre || []).map(b => b.board_members?.navn).join(", ")
                 : "—")),
           el("td", { class: "dim" }, [tidspunkt(r.opprettet), el("span", { class: "who" }, navnPaa(r.oppretter))]),
           el("td", { class: "num" }, el("div", { class: "actions" }, [
@@ -455,12 +525,16 @@ async function apne_(sti) {
    ===================================================================== */
 
 export const fullmakterView = {
-  tittel: "Fullmakter",
-  undertekst: "Hvem styret har gitt fullmakt til å signere protokoller på styrets vegne, og for hvor lenge.",
+  tittel: "Styret og fullmakter",
+  undertekst: "Hvem som sitter i styret, og hvem styret har gitt fullmakt til å signere på styrets vegne.",
   async bygg() { return byggFullmakter(); }
 };
 
 async function byggFullmakter() {
+  const { data: styret, error: sFeil } = await db.from("board_members")
+    .select("*, profiles:user_id(fornavn,etternavn,epost)")
+    .eq("organization_id", S.orgId).order("rekkefolge").order("navn");
+  if (sFeil) throw sFeil;
   const { data, error } = await db.from("mandates")
     .select("*, profiles:user_id(fornavn,etternavn,epost), trukket:trukket_av(fornavn,etternavn), vedtak_dok:vedtak_document_id(tittel,saksflytnr)")
     .eq("organization_id", S.orgId).order("opprettet", { ascending: false });
@@ -475,6 +549,26 @@ async function byggFullmakter() {
       "Styret fatter et vedtak om at én person — ofte daglig leder eller sekretær — kan signere protokoller på styrets vegne. " +
       "Administrator registrerer vedtaket her med gyldighetsperiode. Når fullmektig signerer, viser signaturen til vedtaket. " +
       "En fullmakt kan ikke redigeres; den trekkes tilbake og en ny registreres. Alt havner i revisjonssporet.")
+  }));
+
+  const sitter = (b) => (!b.fra || b.fra <= iDag_) && (!b.til || b.til >= iDag_);
+  boks.append(kort({
+    tittel: "Styret",
+    beskrivelse: "Styremedlemmene trenger ikke egen innlogging. Når fullmektig signerer på vegne av styret, står disse navnene på signatursiden.",
+    hoyre: erAdmin() ? knapp("Legg til styremedlem", { klasse: "stille", ikon: "pluss", ved: async () => { if (await redigerStyremedlem(null)) paaNytt(); } }) : null,
+    innhold: tabell(
+      [{ t: "Navn" }, { t: "Verv" }, { t: "Periode" }, { t: "Innlogging" }, { t: "" }],
+      (styret || []).map(b => el("tr", {}, [
+        el("td", { class: "strong" }, b.navn),
+        el("td", {}, b.verv),
+        el("td", { class: "dim" }, [(b.fra ? dato(b.fra) : "—") + " – " + (b.til ? dato(b.til) : "sitter"), !sitter(b) && el("span", { class: "who" }, "Ikke i styret nå")]),
+        el("td", {}, b.user_id ? merke(navnPaa(b.profiles), "teal") : el("span", { class: "dim" }, "Ingen")),
+        el("td", { class: "num" }, erAdmin() ? el("div", { class: "actions" }, [
+          knapp("Rediger", { klasse: "stille sm", ved: async () => { if (await redigerStyremedlem(b)) paaNytt(); } })
+        ]) : null)
+      ])),
+      "Ingen styremedlemmer er registrert ennå."
+    )
   }));
 
   boks.append(kort({
@@ -547,4 +641,187 @@ async function nyFullmakt() {
   });
   if (svar) toast("Registrert", "Fullmakten er registrert og gjelder fra " + dato(svar.gyldig_fra || iDag()) + ".");
   return !!svar;
+}
+
+async function redigerStyremedlem(b) {
+  const { data: brukere } = await db.from("organization_users").select("user_id, profiles(fornavn,etternavn,epost)")
+    .eq("organization_id", S.orgId).eq("aktiv", true).neq("rolle", "revisor");
+  const svar = await skjemaModal({
+    tittel: b ? "Rediger styremedlem" : "Nytt styremedlem",
+    felter: [
+      { navn: "navn", label: "Navn", verdi: b?.navn || "", bredde: "full" },
+      { navn: "verv", label: "Verv", type: "select", verdi: b?.verv || "Styremedlem",
+        valg: VERV.filter(v => v !== "Ingen verv").map(v => ({ verdi: v, tekst: v })) },
+      { navn: "user_id", label: "Knyttet til bruker", type: "select", verdi: b?.user_id || "",
+        valg: [{ verdi: "", tekst: "Ingen innlogging" }].concat((brukere || []).map(u => ({ verdi: u.user_id, tekst: navnPaa(u.profiles) }))),
+        hint: "Bare nødvendig hvis personen skal signere selv." },
+      { navn: "fra", label: "Valgt fra", type: "date", verdi: b?.fra || "" },
+      { navn: "til", label: "Gikk ut", type: "date", verdi: b?.til || "", hint: "Tom = sitter fortsatt." }
+    ],
+    lagreTekst: b ? "Lagre" : "Legg til",
+    onLagre: async (d) => {
+      if (!d.navn) { toast("Mangler navn", "Skriv navnet på styremedlemmet.", true); return false; }
+      const rad = { navn: d.navn, verv: d.verv, user_id: d.user_id || null, fra: d.fra || null, til: d.til || null };
+      const { error } = b
+        ? await db.from("board_members").update(rad).eq("id", b.id)
+        : await settInn("board_members", rad);
+      if (error) throw error;
+      return true;
+    },
+    onSlett: b ? async () => {
+      const { error } = await db.from("board_members").delete().eq("id", b.id);
+      if (error) throw error;
+    } : undefined
+  });
+  return !!svar;
+}
+
+/* =====================================================================
+   Enkel signatur — enheten går rundt bordet
+   ===================================================================== */
+
+async function enkelSignering(r, dok) {
+  let gjort = false;
+  await new Promise(resolve => {
+    const overlay = el("div", { class: "overlay" });
+    const lukk = () => { overlay.remove(); resolve(); };
+    const liste = el("div", { class: "oppm" });
+    const datoFelt = el("input", { type: "date", value: dok.dokumentdato || iDag(), max: iDag() });
+
+    const tegnListe = async () => {
+      const { data: sign } = await db.from("signatures").select("board_member_id, navn_tekst, signaturdato, signatur_id")
+        .eq("request_id", r.id);
+      const signert = Object.fromEntries((sign || []).filter(x => x.board_member_id).map(x => [x.board_member_id, x]));
+      liste.replaceChildren(...(r.styre || [])
+        .slice().sort((a, b) => (a.board_members?.rekkefolge ?? 100) - (b.board_members?.rekkefolge ?? 100))
+        .map(b => {
+          const s = signert[b.board_member_id];
+          return el("div", { class: "oppm-rad", style: "cursor:default" }, [
+            el("span", { class: "merke " + (s ? "green" : "gold"), html: svg(s ? "ok" : "bruker") }),
+            el("span", { class: "tekst" }, [
+              el("b", {}, b.board_members?.navn || "—"),
+              el("span", {}, s ? `Signert ${dato(s.signaturdato)} · ${s.signatur_id}` : (b.board_members?.verv || ""))
+            ]),
+            s ? merke("Signert", "green") : knapp("Signer", {
+              klasse: "primary", ved: async () => {
+                if (await signerStyremedlem(r, dok, b, datoFelt.value)) { gjort = true; await tegnListe(); }
+              }
+            })
+          ]);
+        }));
+      const alle = (r.styre || []).length && Object.keys(signert).length >= (r.styre || []).length;
+      ferdigKnapp.textContent = alle ? "Alle har signert — lukk" : "Lukk";
+    };
+
+    const ferdigKnapp = el("button", { class: "btn primary", onclick: lukk }, "Lukk");
+    overlay.append(el("div", { class: "modal", style: "max-width:640px" }, [
+      el("div", { class: "modal-head" }, [
+        el("h2", {}, "Enkel signatur"),
+        el("p", {}, (dok.tittel || dok.filnavn) + (dok.saksflytnr ? " · " + dok.saksflytnr : "") + ". Gi enheten til hvert styremedlem etter tur.")
+      ]),
+      el("div", { class: "modal-body" }, [
+        el("div", { class: "field", style: "margin-bottom:12px" }, [
+          el("label", {}, "Dato på signaturene"), datoFelt,
+          el("span", { class: "hint" }, "Møtedatoen. Tidspunktet hver signatur faktisk gjøres, logges uansett.")
+        ]),
+        liste
+      ]),
+      el("div", { class: "modal-foot" }, [ferdigKnapp])
+    ]));
+    document.body.append(overlay);
+    tegnListe();
+  });
+
+  if (gjort) {
+    const { data: oppd } = await db.from("documents").select("*").eq("id", dok.id).single();
+    if (oppd?.laast) {
+      try { await ferdigstillSignertFil(oppd); toast("Ferdig signert", "Alle har signert. Den signerte PDF-en ligger i arkivet."); }
+      catch (e) { console.warn(e); toast("Signert", "Signaturene er registrert, men PDF-en kunne ikke lages nå. Bruk «Lag signert PDF» i arkivet.", true); }
+    }
+  }
+  return gjort;
+}
+
+async function signerStyremedlem(r, dok, b, signaturdato) {
+  const navn = b.board_members?.navn || "Styremedlem";
+  const flate = tegneflate();
+  const bekreftet = el("input", { type: "checkbox" });
+
+  return new Promise(resolve => {
+    const overlay = el("div", { class: "overlay" });
+    const lukk = (v) => { overlay.remove(); resolve(v); };
+    const signerKnapp = el("button", { class: "btn primary" }, "Signer");
+    signerKnapp.addEventListener("click", async () => {
+      if (!bekreftet.checked) { toast("Bekreft", "Kryss av for at det er du som signerer.", true); return; }
+      signerKnapp.disabled = true; signerKnapp.textContent = "Signerer …";
+      try {
+        let sti = null;
+        if (!flate.erTom()) {
+          const png = await flate.blob();
+          sti = `${S.orgId}/signatur-${Date.now()}-${b.board_member_id.slice(0, 8)}.png`;
+          const { error: oppFeil } = await db.storage.from("dokumenter").upload(sti, png, { contentType: "image/png" });
+          if (oppFeil) { console.warn(oppFeil); sti = null; toast("Håndtegning", "Tegningen kunne ikke lagres, signaturen registreres uten.", true); }
+        }
+        const { error } = await db.from("signatures").insert({
+          request_id: r.id, signert_som: "styremedlem_i_mote", board_member_id: b.board_member_id,
+          signaturdato: signaturdato || null, signaturbilde_path: sti,
+          user_agent: navigator.userAgent.slice(0, 200)
+        });
+        if (error) throw error;
+        toast("Signert", navn + " har signert.");
+        lukk(true);
+      } catch (e) { visFeil(e, "Signering"); signerKnapp.disabled = false; signerKnapp.textContent = "Signer"; }
+    });
+
+    overlay.append(el("div", { class: "modal", style: "max-width:640px" }, [
+      el("div", { class: "modal-head" }, [
+        el("h2", {}, navn),
+        el("p", {}, (b.board_members?.verv || "") + " · signerer " + (dok.tittel || dok.filnavn))
+      ]),
+      el("div", { class: "modal-body" }, [
+        el("div", { class: "field" }, [
+          el("label", {}, "Signer med fingeren eller pennen (valgfritt)"),
+          flate.el,
+          el("div", { class: "actions" }, [knapp("Tøm", { klasse: "stille sm", ved: flate.tom })])
+        ]),
+        el("label", { style: "display:flex;gap:10px;align-items:center;margin-top:14px;font-weight:500" }, [
+          bekreftet, "Jeg er " + navn + " og signerer dette dokumentet."
+        ])
+      ]),
+      el("div", { class: "modal-foot" }, [
+        el("button", { class: "btn", onclick: () => lukk(false) }, "Avbryt"),
+        signerKnapp
+      ])
+    ]));
+    document.body.append(overlay);
+  });
+}
+
+/** Tegneflate for håndsignatur. Returnerer { el, tom(), erTom(), blob() }. */
+function tegneflate() {
+  const lerret = el("canvas", { style: "width:100%;height:180px;border:1px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block" });
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  let c, tegnet = false, nede = false, sist = null;
+  const klargjor = () => {
+    const w = lerret.clientWidth || 560, h = 180;
+    lerret.width = Math.round(w * dpr); lerret.height = Math.round(h * dpr);
+    c = lerret.getContext("2d"); c.scale(dpr, dpr);
+    c.lineWidth = 2.2; c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = "#0b2b33";
+    tegnet = false;
+  };
+  const pos = (e) => { const r = lerret.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  lerret.addEventListener("pointerdown", e => { e.preventDefault(); lerret.setPointerCapture(e.pointerId); nede = true; sist = pos(e); });
+  lerret.addEventListener("pointermove", e => {
+    if (!nede) return; e.preventDefault();
+    const p = pos(e); c.beginPath(); c.moveTo(sist.x, sist.y); c.lineTo(p.x, p.y); c.stroke(); sist = p; tegnet = true;
+  });
+  const slipp = () => { nede = false; sist = null; };
+  lerret.addEventListener("pointerup", slipp); lerret.addEventListener("pointercancel", slipp); lerret.addEventListener("pointerleave", slipp);
+  setTimeout(klargjor, 0);
+  return {
+    el: lerret,
+    tom: () => { klargjor(); },
+    erTom: () => !tegnet,
+    blob: () => new Promise(ok => lerret.toBlob(ok, "image/png"))
+  };
 }
