@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Saksflyt — Verifiser signatur</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Kontroller at en elektronisk signatur fra Saksflyt er ekte.">
+<meta name="theme-color" content="#073F43">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23087F7A'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>S</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="./app/styles.css">
+<style>
+  body{display:flex;flex-direction:column;min-height:100vh}
+  .portal-topp{background:var(--sb-bg);color:#fff;padding:56px 24px 88px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+  .portal-merke{display:flex;align-items:center;gap:11px;margin-bottom:6px;text-decoration:none;color:inherit}
+  .portal-merke .sb-logo{width:38px;height:38px;border-radius:11px;font-size:1.1rem}
+  .portal-merke b{font-size:1.12rem;font-weight:650;letter-spacing:-.015em}
+  .portal-topp h1{color:#fff;font-size:clamp(1.7rem,4vw,2.3rem);max-width:22ch}
+  .portal-topp p{color:#A9C7C6;font-size:1rem;max-width:52ch;margin:0;line-height:1.6}
+  main{width:min(720px,100%);margin:-56px auto 0;padding:0 16px 56px;display:flex;flex-direction:column;gap:16px}
+  .card{padding:22px}
+  form{display:flex;gap:10px;flex-wrap:wrap}
+  form input{flex:1;min-width:200px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase}
+  .kv dd{text-align:left}
+  .hash{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;word-break:break-all;color:var(--muted)}
+  .sig{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+  .ok-stor{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .ok-stor .merke{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .ok-stor .merke svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .ok-stor.green .merke{background:var(--green-soft);color:var(--green)}
+  .ok-stor.red .merke{background:var(--red-soft);color:var(--red)}
+  .ok-stor.gold .merke{background:var(--gold-soft);color:var(--gold)}
+  .ok-stor b{font-size:1.05rem}
+  .ok-stor span{display:block;color:var(--muted);font-size:.875rem}
+  footer{margin-top:auto;padding:24px;text-align:center;color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<header class="portal-topp">
+  <a class="portal-merke" href="./"><span class="sb-logo">S</span><b>Saksflyt</b></a>
+  <h1>Kontroller en elektronisk signatur</h1>
+  <p>Hver signatur i Saksflyt har en egen ID, for eksempel <b style="color:#fff">SIG-7K3M-92Q4</b>. Den står nederst på signatursiden i dokumentet. Skriv den inn her for å se hvem som signerte, når, og at dokumentet ikke er endret siden.</p>
+</header>
+
+<main>
+  <div class="card">
+    <form id="skjema">
+      <input id="kode" name="id" placeholder="SIG-XXXX-XXXX" autocomplete="off" spellcheck="false" required>
+      <button class="btn primary" type="submit">Kontroller</button>
+    </form>
+  </div>
+  <div id="svar"></div>
+  <div class="card" style="font-size:.875rem;color:var(--muted);line-height:1.55">
+    <b style="color:var(--ink)">Hva denne siden viser, og ikke viser.</b> Siden viser hvem som signerte, i hvilken rolle, datoen signaturen gjelder for og tidspunktet den faktisk ble gjort. Den viser også dokumentets fingeravtrykk (SHA-256). Selve dokumentet vises ikke — det ligger i klubbens arkiv. Har du mottatt en PDF og vil vite om den er ekte, sammenlign fingeravtrykket på signatursiden med det som står her.
+  </div>
+</main>
+<footer>Saksflyt · sakflyt.no</footer>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+  import { SUPABASE_URL, SUPABASE_ANON_KEY, ER_KONFIGURERT } from "./app/config.js";
+
+  const $ = (s) => document.querySelector(s);
+  const db = ER_KONFIGURERT ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } }) : null;
+
+  const d8 = (d) => d ? new Date(d).toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" }) : "—";
+  const t8 = (t) => t ? new Date(t).toLocaleString("nb-NO", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  const SOM = { styremedlem: "Styremedlem", fullmektig_for_styret: "På vegne av styret, etter fullmakt", administrator: "På vegne av styret (administrator)" };
+  const STATUS = { fullfort: "Dokumentet er ferdig signert og låst.", delvis: "Dokumentet er delvis signert — ikke alle har signert ennå.", venter: "Venter på signering.", avvist: "Signeringen ble avvist.", trukket: "Forespørselen ble trukket tilbake." };
+
+  function el(tag, attr = {}, barn = []) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attr)) { if (v == null || v === false) continue; if (k === "class") n.className = v; else if (k === "html") n.innerHTML = v; else n.setAttribute(k, v); }
+    for (const b of [].concat(barn)) { if (b == null || b === false) continue; n.append(b.nodeType ? b : document.createTextNode(String(b))); }
+    return n;
+  }
+  const kv = (par) => el("dl", { class: "kv" }, par.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]));
+  const OK = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+  const NEI = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  const VARSEL = '<svg viewBox="0 0 24 24"><path d="M12 3.6 2.8 20h18.4z"/><path d="M12 10v4M12 17h.01"/></svg>';
+
+  async function kontroller(kode) {
+    const svar = $("#svar");
+    svar.replaceChildren(el("div", { class: "card" }, "Kontrollerer …"));
+    if (!db) { svar.replaceChildren(el("div", { class: "card" }, "Saksflyt er ikke satt opp på denne adressen.")); return; }
+    const { data, error } = await db.rpc("verifiser_signatur", { kode });
+    if (error) { svar.replaceChildren(el("div", { class: "card" }, "Noe gikk galt: " + error.message)); return; }
+    const r = data && data[0];
+    if (!r) {
+      svar.replaceChildren(el("div", { class: "card" }, [
+        el("div", { class: "ok-stor red" }, [el("span", { class: "merke", html: NEI }), el("div", {}, [el("b", {}, "Fant ingen signatur med ID " + kode.toUpperCase()), el("span", {}, "Kontroller at du har skrevet riktig. En ID som ikke finnes, er ikke utstedt av Saksflyt.")])])
+      ]));
+      return;
+    }
+    const farge = r.status === "fullfort" ? "green" : (r.status === "delvis" ? "gold" : "red");
+    svar.replaceChildren(el("div", { class: "card" }, [
+      el("div", { class: "ok-stor " + farge }, [
+        el("span", { class: "merke", html: farge === "green" ? OK : (farge === "gold" ? VARSEL : NEI) }),
+        el("div", {}, [el("b", {}, "Signaturen " + r.signatur_id + " er registrert i Saksflyt"), el("span", {}, STATUS[r.status] || r.status)])
+      ]),
+      kv([
+        ["Organisasjon", r.organisasjon + (r.orgnr ? " (org.nr " + r.orgnr + ")" : "")],
+        ["Dokument", r.dokument + (r.saksflytnr ? " · " + r.saksflytnr : "")],
+        ["Mappe", r.mappe || "—"]
+      ]),
+      el("div", { class: "sig" }, [
+        kv([
+          ["Signert av", r.navn + (r.rolle ? ", " + r.rolle : "")],
+          ["Signert som", SOM[r.signert_som] || r.signert_som],
+          r.fullmakt ? ["Fullmakt", r.fullmakt] : null,
+          ["Dato på dokumentet", d8(r.signaturdato)],
+          ["Signert elektronisk", t8(r.signert_tidspunkt)],
+          ["Signaturnivå", r.nivaa === "intern" ? "Intern e-signatur i Saksflyt (innlogget bruker, bekreftet med passord)" : r.nivaa],
+          ["Antall signaturer på dokumentet", String(r.antall_signaturer)]
+        ].filter(Boolean)),
+        r.dokument_hash ? el("p", { style: "margin:14px 0 0" }, [el("b", { style: "font-size:.8rem" }, "Dokumentets fingeravtrykk (SHA-256)"), el("br"), el("span", { class: "hash" }, r.dokument_hash)]) : null
+      ])
+    ]));
+  }
+
+  $("#skjema").addEventListener("submit", (e) => { e.preventDefault(); const k = $("#kode").value.trim(); if (k) { history.replaceState(null, "", "?id=" + encodeURIComponent(k.toUpperCase())); kontroller(k); } });
+  const start = new URLSearchParams(location.search).get("id");
+  if (start) { $("#kode").value = start; kontroller(start); }
+</script>
+</body>
+</html>

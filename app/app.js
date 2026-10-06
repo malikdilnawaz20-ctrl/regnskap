@@ -25,6 +25,7 @@ import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";
 import { rapportmalView } from "./views/rapportmal.js?v=20260827-1705";
 import { MERKE } from "./config.js";
 import { stemple, kanStemples } from "./stempel.js";
+import { signeringView, fullmakterView, hentApneForesporsler, hentSigneringTall, signeringCelle, signeringKnapper } from "./views/signering.js";
 
 /* =====================================================================
    Navigasjon — organisert etter hva brukeren vil gjøre,
@@ -47,11 +48,13 @@ const RUTER = {
   regnskapsrapporter: { tittel: "Regnskapsrapporter", ikon: "rapport", view: () => rapporterView, under: "okonomi" },
   prosjekter:  { tittel: "Prosjekter", ikon: "prosjekt", view: () => prosjekterView },
   dokumenter:  { tittel: "Dokumenter", ikon: "dokument" },
+  signering:   { tittel: "Signering", ikon: "ok", view: () => signeringView },
   rapporter:   { tittel: "Rapporter", ikon: "rapport", view: () => rapportmalView },
   innstillinger: { tittel: "Innstillinger", ikon: "innstilling" },
   brukere:     { tittel: "Brukere", ikon: "bruker", under: "innstillinger" },
   selskap:     { tittel: "Selskapsinformasjon", ikon: "bygg", under: "innstillinger" },
   revisjonsspor: { tittel: "Revisjonsspor", ikon: "logg", under: "innstillinger" },
+  fullmakter:  { tittel: "Fullmakter", ikon: "logg", under: "innstillinger", view: () => fullmakterView },
   hjelp:       { tittel: "Hjelp", ikon: "hjelp" },
   profil:      { tittel: "Min profil", ikon: "bruker", skjult: true }
 };
@@ -60,11 +63,11 @@ const HOVEDNAV = [
   { gruppe: null, punkter: ["oversikt"] },
   { gruppe: "Klubben", punkter: ["medlemmer", "innmeldinger", "aktiviteter", "betalinger"] },
   { gruppe: "Penger", punkter: ["okonomi", "honorarer", "faktura", "prosjekter", "rapporter"] },
-  { gruppe: "Arkiv", punkter: ["dokumenter"] }
+  { gruppe: "Arkiv", punkter: ["dokumenter", "signering"] }
 ];
 
 const OKONOMI_UNDER = ["bank", "attestering", "regnskapsrapporter"];
-const INNST_UNDER = ["selskap", "brukere", "revisjonsspor"];
+const INNST_UNDER = ["selskap", "brukere", "fullmakter", "revisjonsspor"];
 
 /** Revisor har kun lesetilgang til tall og bilag \u2014 ingen medlemsdata, ingen innstillinger, ingen eksport. */
 const REVISOR_RUTER = ["oversikt", "okonomi", "bank", "regnskapsrapporter", "rapporter", "hjelp", "profil"];
@@ -455,7 +458,7 @@ function byggTopp() {
 function undertekstFor(rute) {
   const v = RUTER[rute]?.view?.();
   return v?.undertekst || {
-    dokumenter: "Vedtekter, avtaler, årsmøtepapirer og annet klubben må ta vare på.",
+    dokumenter: "Vedtekter, avtaler, årsmøtepapirer og annet klubben må ta vare på. Protokoller kan signeres elektronisk.",
     innstillinger: "Organisasjon, brukere og sporbarhet.",
     brukere: "Hvem som har tilgang, hvilken rolle de har og hvilket verv de sitter i.",
     selskap: "Grunnopplysninger om organisasjonen og hvem som attesterer regninger.",
@@ -514,12 +517,13 @@ async function tegnInnhold(boks) {
 async function forside() {
   const boks = el("div", { class: "stack" });
 
-  const [okonomi, medlemsTall, prosjekter, attest, nyeInnmeldinger] = await Promise.all([
+  const [okonomi, medlemsTall, prosjekter, attest, nyeInnmeldinger, signering] = await Promise.all([
     hentOkonomiTall().catch(() => ({})),
     hentMedlemsTall().catch(() => ({})),
     velgFra("v_prosjekt_status", "*").then(r => r.data || []).catch(() => []),
     hentAttesteringTall().catch(() => ({ tilAttestering: 0, tilAnvisning: 0 })),
-    velgFra("innmeldinger", "id").eq("status", "ny").then(r => (r.data || []).length).catch(() => 0)
+    velgFra("innmeldinger", "id").eq("status", "ny").then(r => (r.data || []).length).catch(() => 0),
+    hentSigneringTall().catch(() => ({ apne: 0, tilMeg: 0 }))
   ]);
 
   /* --- fire nøkkeltall --- */
@@ -566,6 +570,11 @@ async function forside() {
     tittel: antall(okonomi.manglerVedlegg, "bilag mangler kvittering", "bilag mangler kvittering"),
     undertekst: "Regnskapet bør ha dokumentasjon på hver utgift",
     farge: "gold", ikon: "kvittering", klikk: () => gaTil("okonomi")
+  }));
+  if (signering.tilMeg) rader.push(oppmRad({
+    tittel: antall(signering.tilMeg, "dokument venter på signaturen din", "dokumenter venter på signaturen din"),
+    undertekst: "Protokoller og andre dokumenter som skal signeres elektronisk",
+    farge: "teal", ikon: "dokument", klikk: () => gaTil("signering")
   }));
   if (attest.tilAttestering) rader.push(oppmRad({
     tittel: antall(attest.tilAttestering, "regning venter på godkjenning", "regninger venter på godkjenning"),
@@ -997,6 +1006,7 @@ async function innstillinger() {
       innhold: el("div", { class: "oppm" }, [
         rad("selskap", "Selskapsinformasjon", "Navn, organisasjonsnummer og hvem som attesterer", "bygg"),
         rad("brukere", "Brukere og roller", "Hvem har tilgang, og hva får de lov til", "bruker"),
+        rad("fullmakter", "Fullmakter", "Hvem som kan signere protokoller på vegne av styret", "logg"),
         rad("revisjonsspor", "Revisjonsspor", "Alle endringer, i rekkefølge", "logg"),
         rad("profil", "Min profil", "Navn, kontaktinfo og passord", "medlemmer")
       ])
@@ -1072,7 +1082,8 @@ function stempelStatus(d) {
 }
 
 function kanStemplesRad(d) {
-  return !!d.storage_path && !d.stemplet && kanStemples(d.filnavn || d.storage_path);
+  // Et signert dokument er låst; filen kan ikke byttes ut med en stemplet versjon.
+  return !!d.storage_path && !d.stemplet && !d.laast && kanStemples(d.filnavn || d.storage_path);
 }
 
 async function stempleArkivdokument(d) {
@@ -1191,7 +1202,10 @@ async function slettDokument(d) {
 }
 
 async function dokumenter() {
-  const { data, error } = await velgFra("documents", "*").order("opprettet", { ascending: false });
+  const [{ data, error }, apneSignering] = await Promise.all([
+    velgFra("documents", "*").order("opprettet", { ascending: false }),
+    hentApneForesporsler().catch(() => ({}))
+  ]);
   if (error) throw error;
 
   const boks = el("div", { class: "stack" });
@@ -1234,16 +1248,18 @@ async function dokumenter() {
     boks.append(kort({
       tittel: mappe,
       beskrivelse: `${filer.length} dokument${filer.length === 1 ? "" : "er"}`,
-      innhold: tabell([{ t: "Tittel" }, { t: "Lagt inn" }, { t: "Tilgang" }, { t: "Saksflytnummer", num: true }, { t: "" }],
+      innhold: tabell([{ t: "Tittel" }, { t: "Lagt inn" }, { t: "Tilgang" }, { t: "Signering" }, { t: "Saksflytnummer", num: true }, { t: "" }],
         filer.map(f => el("tr", {}, [
-          el("td", { class: "strong" }, [f.tittel, f.filnavn && el("span", { class: "who" }, f.filnavn)]),
+          el("td", { class: "strong" }, [f.tittel, f.dokumentdato && el("span", { class: "who" }, "Dokumentdato " + dato(f.dokumentdato)), f.filnavn && el("span", { class: "who" }, f.filnavn)]),
           el("td", { class: "dim" }, tidspunkt(f.opprettet)),
           el("td", {}, f.kun_styret ? merke("Kun styret", "gold") : merke("Alle i klubben", "neutral")),
+          el("td", {}, signeringCelle(f, apneSignering, tegn)),
           el("td", { class: "num mono" }, f.saksflytnr
             ? [f.saksflytnr, el("span", { class: "who" }, stempelStatus(f))]
             : el("span", { class: "dim" }, "—")),
           el("td", { class: "num" }, el("div", { class: "actions" }, [
-            (kanSkrive() && kanStemplesRad(f)) ? knapp("Stemple", {
+            ...signeringKnapper(f, apneSignering, tegn),
+            (kanSkrive() && kanStemplesRad(f) && !f.laast) ? knapp("Stemple", {
               klasse: "stille sm",
               tittel: "Trykk " + f.saksflytnr + " inn i filen",
               ved: (e) => stempleMange([f], e.currentTarget)
@@ -1255,7 +1271,7 @@ async function dokumenter() {
                 window.open(url.signedUrl, "_blank", "noopener");
               }
             }) : null,
-            erAdmin() ? knapp("Slett", {
+            (erAdmin() && !f.laast) ? knapp("Slett", {
               klasse: "danger sm",
               tittel: "Slett " + (f.saksflytnr || "dokumentet"),
               ved: () => slettDokument(f)
@@ -1275,6 +1291,7 @@ async function lastOppDokument() {
     felter: [
       { navn: "tittel", label: "Hva er dette?", plassholder: "Årsmøteprotokoll 2026", bredde: "full" },
       { navn: "mappe", label: "Mappe", type: "select", valg: MAPPER.map(m => ({ verdi: m, tekst: m })) },
+      { navn: "dokumentdato", label: "Dokumentdato", type: "date", hint: "Møtedatoen for protokoller. Kan stå tom." },
       { navn: "kun_styret", label: "Kun for styret", type: "checkbox", verdi: false }
     ],
     ekstra: el("div", { class: "field", style: "margin-top:14px" }, [el("label", {}, "Fil"), fil]),
@@ -1305,7 +1322,7 @@ async function lastOppDokument() {
       const { error } = await settInn("documents", {
         tittel: d.tittel, mappe: d.mappe, kun_styret: d.kun_styret,
         filnavn: f?.name || null, storage_path: sti, lastet_opp_av: S.bruker.id,
-        saksflytnr: nummer, stemplet
+        saksflytnr: nummer, stemplet, dokumentdato: d.dokumentdato || null
       });
       if (error) throw error;
       return true;
@@ -1327,7 +1344,8 @@ async function revisjonsspor() {
   const HANDLING = { insert: ["Opprettet", "green"], update: ["Endret", "blue"], delete: ["Slettet", "red"] };
   const TABELL = {
     members: "medlem", transactions: "bilag", organization_users: "brukertilgang", documents: "dokument",
-    payment_claims: "betalingskrav", supplier_invoices: "regning"
+    payment_claims: "betalingskrav", supplier_invoices: "regning",
+    mandates: "fullmakt", signature_requests: "signeringsforespørsel", signatures: "signatur"
   };
 
   return kort({

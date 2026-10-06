@@ -85,6 +85,23 @@ Status: planlegges, søkt, innvilget, avslått, rapportering pågår, ferdig rap
 
 ---
 
+## E-signatur på dokumenter (bygget, oktober 2026)
+
+Filer: `supabase/migrations/0017_e_signatur.sql`, `app/views/signering.js`, `app/signatur-pdf.js`, `verifiser.html`. Spesifikasjonen ligger i prosjektet som `spesifikasjon/e-signatur-protokoller.md`.
+
+Det som gjelder, og som ikke skal endres uten god grunn:
+
+- **To datoer.** `signaturdato` er datoen som står på dokumentet og velges av den som signerer (aldri frem i tid, aldri før `documents.dokumentdato`). `signert_tidspunkt` settes av databasen. Begge i revisjonssporet.
+- **Fullmakt er et vedtak** (`mandates`), ikke en rolle: gyldighetsperiode, omfang og henvisning til vedtaket. Kan ikke redigeres, bare trekkes tilbake. Administrator kan alltid signere på vegne av styret — ikke synlig i grensesnittet, synlig i loggen.
+- **Signaturer kan aldri endres eller slettes.** Et ferdig signert dokument får `laast = true` og innholdet kan ikke endres. Feil rettes med ny versjon.
+- **Databasen bestemmer.** `vern_signatur()` avgjør hvem som får signere; grensesnittet skjuler bare knappene. Ikke flytt regler til klientsiden.
+- **Signert PDF** lages i nettleseren med pdf-lib (signaturside bakerst) og lagres på `documents.signert_path`. Feiler det, finnes «Lag signert PDF» i arkivet — signaturen i databasen er det som gjelder.
+- **Verifisering** er offentlig: `verifiser.html?id=SIG-XXXX-XXXX` kaller `verifiser_signatur()` som anon. Dokumenter merket «kun styret» viser ikke tittelen utad.
+
+Neste steg når det trengs: BankID via leverandør (`signatures.nivaa = 'bankid'`), e-postvarsel ved signeringsforespørsel.
+
+---
+
 ## Ikke gjør dette ennå
 
 Ikke bygg NIF-integrasjon. Åpne data ligger på [data.nif.no](https://data.nif.no/index.html), men integrasjonen skal ligge i en egen modul under `integrations/nif` og kobles på først når en formell avtale foreligger. Datamodellen har allerede `ekstern_id` og `ekstern_kilde` på medlemmer.
