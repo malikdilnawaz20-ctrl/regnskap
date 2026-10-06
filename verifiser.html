@@ -68,7 +68,7 @@
 
   const d8 = (d) => d ? new Date(d).toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" }) : "—";
   const t8 = (t) => t ? new Date(t).toLocaleString("nb-NO", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
-  const SOM = { styremedlem: "Styremedlem — innlogget signatur", styremedlem_i_mote: "Styremedlem — enkel signatur", fullmektig_for_styret: "På vegne av styret, etter fullmakt", administrator: "På vegne av styret" };
+  const SOM = { styremedlem: "Styremedlem — innlogget signatur", styremedlem_i_mote: "Enkel signatur i møtet", fullmektig_for_styret: "På vegne av styret, etter fullmakt", administrator: "På vegne av styret" };
   const STATUS = { fullfort: "Dokumentet er ferdig signert og låst.", delvis: "Dokumentet er delvis signert — ikke alle har signert ennå.", venter: "Venter på signering.", avvist: "Signeringen ble avvist.", trukket: "Forespørselen ble trukket tilbake." };
 
   function el(tag, attr = {}, barn = []) {

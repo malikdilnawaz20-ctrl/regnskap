@@ -58,11 +58,20 @@ alter table signature_requests add constraint signature_requests_type_check
 alter table signature_requests add column if not exists anledning text;
 comment on column signature_requests.anledning is 'Hva signeringen gjelder, f.eks. Ekstraordinær generalforsamling. Vises på signatursiden og i verifiseringen.';
 
+-- Hvem som skal signere i møtet: styremedlemmer som er huket av, pluss
+-- inntil noen ekstra som skrives inn der og da (f.eks. de årsmøtet
+-- velger til å underskrive protokollen). Navn og verv fryses her.
 create table if not exists signature_request_board (
+  id               uuid primary key default gen_random_uuid(),
   request_id       uuid not null references signature_requests(id) on delete cascade,
-  board_member_id  uuid not null references board_members(id) on delete cascade,
-  primary key (request_id, board_member_id)
+  board_member_id  uuid references board_members(id) on delete set null,
+  navn             text not null,
+  rolle            text,
+  rekkefolge       int not null default 100
 );
+create index if not exists srb_request_idx on signature_request_board(request_id, rekkefolge);
+create unique index if not exists srb_styremedlem_unik on signature_request_board(request_id, board_member_id)
+  where board_member_id is not null;
 alter table signature_request_board enable row level security;
 drop policy if exists srb_les on signature_request_board;
 create policy srb_les on signature_request_board for select using (
@@ -77,6 +86,7 @@ alter table signatures drop constraint if exists signatures_signert_som_check;
 alter table signatures add constraint signatures_signert_som_check
   check (signert_som in ('styremedlem','styremedlem_i_mote','fullmektig_for_styret','administrator'));
 alter table signatures
+  add column if not exists signer_id          uuid references signature_request_board(id),
   add column if not exists board_member_id    uuid references board_members(id),
   add column if not exists signaturbilde_path text;
 comment on column signatures.signaturbilde_path is 'Håndtegnet signatur (PNG) i bøtta dokumenter, når den finnes.';
@@ -86,8 +96,8 @@ comment on column signatures.signaturbilde_path is 'Håndtegnet signatur (PNG) i
 alter table signatures drop constraint if exists signatures_request_id_user_id_key;
 create unique index if not exists signatures_bruker_unik on signatures(request_id, user_id)
   where signert_som <> 'styremedlem_i_mote';
-create unique index if not exists signatures_styremedlem_unik on signatures(request_id, board_member_id)
-  where board_member_id is not null;
+create unique index if not exists signatures_signatar_unik on signatures(request_id, signer_id)
+  where signer_id is not null;
 
 -- Styret slik det var da det ble signert på styrets vegne — fryses på signaturen
 alter table signatures add column if not exists styret_tekst text;
@@ -110,7 +120,7 @@ declare
   d documents%rowtype;
   p profiles%rowtype;
   ou organization_users%rowtype;
-  bm board_members%rowtype;
+  sg signature_request_board%rowtype;
   fm uuid;
 begin
   select * into r from signature_requests where id = new.request_id;
@@ -136,14 +146,12 @@ begin
     if har_rolle(r.organization_id, array['revisor']::user_role[]) then
       raise exception 'Revisor kan ikke registrere signaturer.';
     end if;
-    if new.board_member_id is null then
-      raise exception 'Velg hvilket styremedlem som signerer.';
+    if new.signer_id is null then
+      raise exception 'Velg hvem som signerer.';
     end if;
-    if not exists (select 1 from signature_request_board b where b.request_id = r.id and b.board_member_id = new.board_member_id) then
-      raise exception 'Dette styremedlemmet står ikke på listen for dokumentet.';
-    end if;
-    select * into bm from board_members where id = new.board_member_id and organization_id = r.organization_id;
-    if bm.id is null then raise exception 'Fant ikke styremedlemmet.'; end if;
+    select * into sg from signature_request_board where id = new.signer_id and request_id = r.id;
+    if sg.id is null then raise exception 'Denne personen står ikke på listen for dokumentet.'; end if;
+    new.board_member_id := sg.board_member_id;
     new.mandate_id := null;
   elsif new.signert_som = 'styremedlem' then
     if r.type <> 'styremedlemmer' then
@@ -183,9 +191,10 @@ begin
   select * into p from profiles where id = new.user_id;
   select * into ou from organization_users where organization_id = r.organization_id and user_id = new.user_id and aktiv;
   if new.signert_som = 'styremedlem_i_mote' then
-    new.navn_tekst := bm.navn;
-    new.rolle_tekst := bm.verv;
+    new.navn_tekst := sg.navn;
+    new.rolle_tekst := sg.rolle;
   else
+    new.signer_id := null;
     new.board_member_id := null;
     new.signaturbilde_path := null;
     new.navn_tekst := coalesce(nullif(trim(coalesce(p.fornavn,'') || ' ' || coalesce(p.etternavn,'')), ''), p.epost::text, 'Ukjent');

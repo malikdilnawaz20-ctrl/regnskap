@@ -30,7 +30,7 @@ export const OMFANG = {
 
 const SIGNERT_SOM = {
   styremedlem: "Styremedlem, innlogget",
-  styremedlem_i_mote: "Styremedlem, enkel signatur",
+  styremedlem_i_mote: "Enkel signatur i møtet",
   fullmektig_for_styret: "På vegne av styret",
   administrator: "På vegne av styret"
 };
@@ -60,8 +60,8 @@ export async function hentForesporsler() {
   const { data, error } = await db.from("signature_requests")
     .select("*, oppretter:opprettet_av(fornavn,etternavn,epost), " +
             "mottakere:signature_request_recipients(user_id, profiles(fornavn,etternavn,epost)), " +
-            "styre:signature_request_board(board_member_id, board_members(navn, verv, rekkefolge)), " +
-            "signaturer:signatures(id, user_id, board_member_id, navn_tekst, rolle_tekst, signert_som, signaturdato, signert_tidspunkt, signatur_id, mandate_id, signaturbilde_path)")
+            "styre:signature_request_board(id, board_member_id, navn, rolle, rekkefolge), " +
+            "signaturer:signatures(id, user_id, signer_id, board_member_id, navn_tekst, rolle_tekst, signert_som, signaturdato, signert_tidspunkt, signatur_id, mandate_id, signaturbilde_path)")
     .eq("organization_id", S.orgId).order("opprettet", { ascending: false });
   if (error) throw error;
   return data || [];
@@ -113,8 +113,8 @@ export async function hvordanKanJegSignere(r, dok) {
 
 /** Styremedlemmer som ikke har signert ennå (enkel signatur). */
 function gjenstaarIMote(r) {
-  const signert = new Set((r.signaturer || []).map(s => s.board_member_id).filter(Boolean));
-  return (r.styre || []).filter(b => !signert.has(b.board_member_id));
+  const signert = new Set((r.signaturer || []).map(s => s.signer_id).filter(Boolean));
+  return (r.styre || []).filter(b => !signert.has(b.id));
 }
 
 /** Brukes av forsiden. */
@@ -218,6 +218,15 @@ export async function sendTilSignering(dok) {
     return el("label", { style: "display:flex;gap:8px;align-items:center;font-weight:500" }, [cb, b.navn, el("span", { class: "dim" }, b.verv)]);
   }));
   if (!sitter.length) listeStyre.append(el("span", { class: "hint" }, "Ingen styremedlemmer er registrert. Legg dem inn under Innstillinger → Styret og fullmakter."));
+  // Inntil fire ekstra som skrives inn der og da — f.eks. de årsmøtet velger til å underskrive
+  const ekstraRader = [1, 2, 3, 4].map(() => ({
+    navn: el("input", { type: "text", placeholder: "Navn" }),
+    rolle: el("input", { type: "text", placeholder: "Verv / valgt til", style: "max-width:45%" })
+  }));
+  listeStyre.append(
+    el("span", { class: "hint", style: "margin-top:8px" }, "Andre som skal signere (valgfritt), f.eks. valgt på årsmøtet til å underskrive protokollen:"),
+    ...ekstraRader.map(r => el("div", { style: "display:flex;gap:8px" }, [r.navn, r.rolle]))
+  );
   const listeBruker = el("div", { class: "stack", style: "gap:6px" }, (brukere || []).map(b => {
     const cb = el("input", { type: "checkbox", checked: !!b.styreverv && !["Ingen verv", "Revisor", "Valgkomité"].includes(b.styreverv) });
     kryssBruker[b.user_id] = cb;
@@ -254,7 +263,8 @@ export async function sendTilSignering(dok) {
     onLagre: async (d) => {
       const valgteStyre = Object.entries(kryssStyre).filter(([, cb]) => cb.checked).map(([id]) => id);
       const valgteBrukere = Object.entries(kryssBruker).filter(([, cb]) => cb.checked).map(([id]) => id);
-      if (maate === "mote" && !valgteStyre.length) { toast("Ingen valgt", "Velg minst ett styremedlem.", true); return false; }
+      const ekstra = ekstraRader.map(r => ({ navn: r.navn.value.trim(), rolle: r.rolle.value.trim() || null })).filter(r => r.navn);
+      if (maate === "mote" && !valgteStyre.length && !ekstra.length) { toast("Ingen valgt", "Velg minst én som skal signere.", true); return false; }
       if (maate === "styremedlemmer" && !valgteBrukere.length) { toast("Ingen valgt", "Velg minst én person.", true); return false; }
       const anledning = anledningValg.value === "Annet" ? anledningFri.value.trim() : anledningValg.value;
       if (!anledning) { toast("Mangler", "Skriv hva signeringen gjelder.", true); return false; }
@@ -278,8 +288,11 @@ export async function sendTilSignering(dok) {
           .insert(valgteBrukere.map(user_id => ({ request_id: ny.id, user_id })));
         if (mFeil) throw mFeil;
       } else if (maate === "mote") {
-        const { error: bFeil } = await db.from("signature_request_board")
-          .insert(valgteStyre.map(board_member_id => ({ request_id: ny.id, board_member_id })));
+        const rader = [
+          ...valgteStyre.map((id, i) => { const b = sitter.find(x => x.id === id); return { request_id: ny.id, board_member_id: id, navn: b.navn, rolle: b.verv, rekkefolge: i * 10 }; }),
+          ...ekstra.map((e, i) => ({ request_id: ny.id, board_member_id: null, navn: e.navn, rolle: e.rolle, rekkefolge: 500 + i * 10 }))
+        ];
+        const { error: bFeil } = await db.from("signature_request_board").insert(rader);
         if (bFeil) throw bFeil;
       }
       return true;
@@ -500,7 +513,7 @@ async function bygg() {
               ])))
             : el("span", { class: "dim" }, r.type === "styremedlemmer"
                 ? "Venter: " + (r.mottakere || []).map(m => navnPaa(m.profiles)).join(", ")
-                : r.type === "mote" ? "Venter: " + (r.styre || []).map(b => b.board_members?.navn).join(", ")
+                : r.type === "mote" ? "Venter: " + (r.styre || []).map(b => b.navn).join(", ")
                 : "—")),
           el("td", { class: "dim" }, [tidspunkt(r.opprettet), el("span", { class: "who" }, navnPaa(r.oppretter))]),
           el("td", { class: "num" }, el("div", { class: "actions" }, [
@@ -689,18 +702,18 @@ async function enkelSignering(r, dok) {
     const datoFelt = el("input", { type: "date", value: dok.dokumentdato || iDag(), max: iDag() });
 
     const tegnListe = async () => {
-      const { data: sign } = await db.from("signatures").select("board_member_id, navn_tekst, signaturdato, signatur_id")
+      const { data: sign } = await db.from("signatures").select("signer_id, navn_tekst, signaturdato, signatur_id")
         .eq("request_id", r.id);
-      const signert = Object.fromEntries((sign || []).filter(x => x.board_member_id).map(x => [x.board_member_id, x]));
+      const signert = Object.fromEntries((sign || []).filter(x => x.signer_id).map(x => [x.signer_id, x]));
       liste.replaceChildren(...(r.styre || [])
-        .slice().sort((a, b) => (a.board_members?.rekkefolge ?? 100) - (b.board_members?.rekkefolge ?? 100))
+        .slice().sort((a, b) => (a.rekkefolge ?? 100) - (b.rekkefolge ?? 100))
         .map(b => {
-          const s = signert[b.board_member_id];
+          const s = signert[b.id];
           return el("div", { class: "oppm-rad", style: "cursor:default" }, [
             el("span", { class: "merke " + (s ? "green" : "gold"), html: svg(s ? "ok" : "bruker") }),
             el("span", { class: "tekst" }, [
-              el("b", {}, b.board_members?.navn || "—"),
-              el("span", {}, s ? `Signert ${dato(s.signaturdato)} · ${s.signatur_id}` : (b.board_members?.verv || ""))
+              el("b", {}, b.navn || "—"),
+              el("span", {}, s ? `Signert ${dato(s.signaturdato)} · ${s.signatur_id}` : (b.rolle || ""))
             ]),
             s ? merke("Signert", "green") : knapp("Signer", {
               klasse: "primary", ved: async () => {
@@ -743,7 +756,7 @@ async function enkelSignering(r, dok) {
 }
 
 async function signerStyremedlem(r, dok, b, signaturdato) {
-  const navn = b.board_members?.navn || "Styremedlem";
+  const navn = b.navn || "Signatar";
   const flate = tegneflate();
   const bekreftet = el("input", { type: "checkbox" });
 
@@ -758,12 +771,12 @@ async function signerStyremedlem(r, dok, b, signaturdato) {
         let sti = null;
         if (!flate.erTom()) {
           const png = await flate.blob();
-          sti = `${S.orgId}/signatur-${Date.now()}-${b.board_member_id.slice(0, 8)}.png`;
+          sti = `${S.orgId}/signatur-${Date.now()}-${b.id.slice(0, 8)}.png`;
           const { error: oppFeil } = await db.storage.from("dokumenter").upload(sti, png, { contentType: "image/png" });
           if (oppFeil) { console.warn(oppFeil); sti = null; toast("Håndtegning", "Tegningen kunne ikke lagres, signaturen registreres uten.", true); }
         }
         const { error } = await db.from("signatures").insert({
-          request_id: r.id, signert_som: "styremedlem_i_mote", board_member_id: b.board_member_id,
+          request_id: r.id, signert_som: "styremedlem_i_mote", signer_id: b.id,
           signaturdato: signaturdato || null, signaturbilde_path: sti,
           user_agent: navigator.userAgent.slice(0, 200)
         });
@@ -776,7 +789,7 @@ async function signerStyremedlem(r, dok, b, signaturdato) {
     overlay.append(el("div", { class: "modal", style: "max-width:640px" }, [
       el("div", { class: "modal-head" }, [
         el("h2", {}, navn),
-        el("p", {}, (b.board_members?.verv || "") + " · signerer " + (dok.tittel || dok.filnavn))
+        el("p", {}, (b.rolle ? b.rolle + " · " : "") + "signerer " + (dok.tittel || dok.filnavn))
       ]),
       el("div", { class: "modal-body" }, [
         el("div", { class: "field" }, [

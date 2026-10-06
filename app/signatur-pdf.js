@@ -16,7 +16,7 @@ const GRAA = [0.45, 0.47, 0.48];
 
 const SIGNERT_SOM = {
   styremedlem: "Styremedlem — innlogget signatur",
-  styremedlem_i_mote: "Styremedlem — enkel signatur",
+  styremedlem_i_mote: "Enkel signatur i møtet",
   fullmektig_for_styret: "På vegne av styret, etter fullmakt",
   administrator: "På vegne av styret"
 };
