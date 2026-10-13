@@ -61,7 +61,7 @@ function avsenderFra(org) {
     epost: org?.epost || "",
     telefon: org?.telefon || "",
     orgnr: org?.orgnr || "",
-    mva: org?.orgnr ? "Org.nr " + org.orgnr : "",
+    mva: org?.orgnr ? "Org.nr " + org.orgnr + (org.mva_registrert ? " MVA" : "") : "",
     farge: "#0E9A6E",
     kontonummer: org?.faktura_kontonummer || org?.kontonummer || "",
     iban: org?.faktura_iban || "",
@@ -327,7 +327,7 @@ async function aapne(faktura, kunder, kategorier, prosjekter) {
   }));
 
   function tomLinje(n) {
-    return { beskrivelse: "", antall: 1, enhet: "", pris_ore: 0, mva_sats: 25, rekkefolge: n };
+    return { beskrivelse: "", antall: 1, enhet: "", pris_ore: 0, mva_sats: S.org?.mva_registrert === false ? 0 : 25, rekkefolge: n };
   }
 
   function summer() {

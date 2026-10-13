@@ -25,6 +25,8 @@ export const erRevisor = () => S.rolle === "revisor";
 export const kanSkrive = () => !!S.rolle && S.rolle !== "revisor";
 /** Begrenset innsyn: ser dokumenter og signering, ikke regnskap eller medlemsregister. */
 export const erBegrenset = () => ["medlem", "trener"].includes(S.rolle);
+/** Bedrift (AS/ENK): ingen medlemmer, men mva, kunder og leverandører. */
+export const erBedrift = () => S.org?.type === "bedrift";
 export const kanSeOkonomi = () => ["administrator", "styreleder", "kasserer", "revisor"].includes(S.rolle);
 
 export const ROLLER = [

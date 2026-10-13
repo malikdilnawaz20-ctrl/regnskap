@@ -104,6 +104,8 @@ Det som gjelder, og som ikke skal endres uten god grunn:
 
 - **Innsyn (0019).** Rollen `medlem` ser bare dokumenter og signering; `trener` i tillegg medlemmer og aktiviteter. Håndhevet med *restriktive* RLS-regler (`*_innsyn`) oppå de vanlige, via `kan_se_okonomi()` og `kan_se_medlemmer()`. I grensesnittet styrer `tillatteRuter()` i `app.js` og `erBegrenset()` i `store.js`. Administrator gir mer innsyn ved å endre rollen under Brukere og roller — ikke ved å skjule/vise knapper.
 
+- **Bedrift (0020).** `organizations.type = 'bedrift'` gir egen kontoplan/kategorier (`opprett_standarddata_bedrift`), skjuler Klubben-gruppa i menyen (`erBedrift()` i `store.js`, `BEDRIFT_SKJULT` i `app.js`), og spør om mva ved første innlogging (`organizations.mva_registrert`, endres under Selskapsinformasjon). Mva-registrerte får mva-sats på bilag (`transactions.mva_sats/mva_ore`, beløp inkl. mva) og 25 % som standard på fakturalinjer. Første bedriftskunde: Solarconsulting AS. Neste for bedrifter: mva-oversikt per termin (utgående fra fakturaer, inngående fra bilag), kunde-/leverandørregister via Enhetsregisteret.
+
 Neste steg når det trengs: BankID via leverandør (`signatures.nivaa = 'bankid'`), e-postvarsel ved signeringsforespørsel.
 
 ---

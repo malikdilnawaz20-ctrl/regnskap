@@ -11,17 +11,17 @@ import {
 } from "./lib.js";
 
 import {
-  S, ROLLER, VERV, erAdmin, kanOkonomi, kanMedlem, kanSkrive, erRevisor, erBegrenset,
+  S, ROLLER, VERV, erAdmin, kanOkonomi, kanMedlem, kanSkrive, erRevisor, erBegrenset, erBedrift,
   hentBruker, hentOrganisasjoner, settOrg, velgFra, settInn, paaNytt, aarNaa
 } from "./store.js";
 
 import { medlemmerView, aktiviteterView, familierView } from "./views/medlemmer.js";
 import { innmeldingerView } from "./views/innmeldinger.js?v=20260909-1";
-import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20260916-3";
+import { okonomiView, prosjekterView, rapporterView, kontingentView, hentOkonomiTall, registrerModal } from "./views/okonomi.js?v=20261013-1";
 import { bankView } from "./views/bank.js?v=20260916-4";
 import { honorarerView } from "./views/honorarer.js?v=20260914-1";
 import { attesteringView, hentAttesteringTall } from "./views/attestering.js";
-import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js";
+import { fakturaView, kunderView, hentFakturaTall } from "./views/faktura.js?v=20261013-1";
 import { rapportmalView } from "./views/rapportmal.js?v=20260827-1705";
 import { MERKE } from "./config.js";
 import { stemple, kanStemples } from "./stempel.js";
@@ -80,7 +80,8 @@ function tillatteRuter() {
   if (S.rolle === "trener") return TRENER_RUTER;
   return null;
 }
-const ruteTillatt = (r) => { const t = tillatteRuter(); return !t || t.includes(r); };
+const BEDRIFT_SKJULT = ["medlemmer", "innmeldinger", "aktiviteter", "familier", "betalinger"];
+const ruteTillatt = (r) => { if (erBedrift() && BEDRIFT_SKJULT.includes(r)) return false; const t = tillatteRuter(); return !t || t.includes(r); };
 
 let ruteNaa = "oversikt";
 let okonomiApen = false;
@@ -269,6 +270,7 @@ async function nyOrganisasjon() {
         navn: "type", label: "Hva slags organisasjon?", type: "select", valg: [
           { verdi: "idrettslag", tekst: "Idrettslag" },
           { verdi: "forening", tekst: "Forening" },
+          { verdi: "bedrift", tekst: "Bedrift (AS, ENK)" },
           { verdi: "kulturorganisasjon", tekst: "Kulturorganisasjon" },
           { verdi: "velforening", tekst: "Velforening" },
           { verdi: "annet", tekst: "Annet" }
@@ -334,6 +336,7 @@ function byggSidepanel() {
   const okonomiUnderSynlig = begrensning ? OKONOMI_UNDER.filter(u => begrensning.includes(u)) : OKONOMI_UNDER;
 
   for (const g of HOVEDNAV) {
+    if (erBedrift() && g.gruppe === "Klubben") continue;
     const punkterSynlig = begrensning ? g.punkter.filter(id => begrensning.includes(id)) : g.punkter;
     if (!punkterSynlig.length) continue;
     const boks = el("div", { class: "sb-group" });
@@ -525,6 +528,21 @@ async function tegnInnhold(boks) {
    Forsiden — referansesiden for designsystemet
    ===================================================================== */
 
+/* Første innlogging for en bedrift: er dere mva-registrert? Kan endres under Selskapsinformasjon. */
+async function velgMva() {
+  const ja = await bekreft(
+    "Er " + S.org.navn + " registrert i Merverdiavgiftsregisteret?",
+    "Velg «Ja» hvis dere fakturerer med mva og leverer mva-melding. Da får fakturaer 25 % mva som standard, og bilag får en mva-sats. Velg «Nei» hvis omsetningen er under 50 000 kr og dere ikke er registrert. Dette kan endres når som helst under Innstillinger → Selskapsinformasjon.",
+    "Ja, mva-registrert"
+  );
+  try {
+    const { error } = await db.from("organizations").update({ mva_registrert: !!ja }).eq("id", S.orgId);
+    if (error) throw error;
+    S.org.mva_registrert = !!ja;
+    toast("Lagret", ja ? "Fakturaer og bilag får mva." : "Ingen mva på fakturaer og bilag.");
+  } catch (e) { visFeil(e, "Mva-valg"); }
+}
+
 /* Forside for medlem/trener: dokumenter og det som venter på signatur. Ingen tall. */
 async function forsideBegrenset() {
   const [signering, { data: doks }] = await Promise.all([
@@ -570,9 +588,19 @@ async function forside() {
     hentSigneringTall().catch(() => ({ apne: 0, tilMeg: 0 }))
   ]);
 
+  /* --- mva-valg første gang for bedrifter --- */
+  if (erBedrift() && erAdmin() && S.org.mva_registrert === null) await velgMva();
+
   /* --- fire nøkkeltall --- */
+  const faktura = erBedrift() ? await hentFakturaTall().catch(() => ({})) : null;
   boks.append(el("div", { class: "grid g4" }, [
-    kpi({
+    erBedrift() ? kpi({
+      nokkel: "Utestående fakturaer", ikon: "kvittering",
+      verdi: kr0(faktura.utestaende || 0) + " kr",
+      under: faktura.antallUte ? antall(faktura.antallUte, "faktura", "fakturaer") + (faktura.forfalt ? ` · ${faktura.forfalt} forfalt` : "") : "Ingen utestående",
+      farge: faktura.forfalt ? "neg" : undefined,
+      klikk: () => gaTil("faktura")
+    }) : kpi({
       nokkel: "Aktive medlemmer", ikon: "medlemmer",
       verdi: String(medlemsTall.aktive ?? 0),
       under: medlemsTall.nye ? `+${medlemsTall.nye} nye siste 30 dager` : "Ingen nye siste 30 dager",
@@ -590,7 +618,12 @@ async function forside() {
       under: `Inn ${kr0(okonomi.inntekt_ore || 0)} · ut ${kr0(okonomi.utgift_ore || 0)}`,
       klikk: () => gaTil("okonomi")
     }),
-    kpi({
+    erBedrift() ? kpi({
+      nokkel: "Regninger å betale", ikon: "betaling",
+      verdi: String((attest.tilAttestering || 0) + (attest.klarForBetaling || 0)),
+      under: attest.tilAttestering ? antall(attest.tilAttestering, "venter på godkjenning", "venter på godkjenning") : "Ingen venter",
+      klikk: () => gaTil("attestering")
+    }) : kpi({
       nokkel: "Ubetalte krav", ikon: "betaling",
       verdi: String(medlemsTall.ubetalte ?? 0),
       under: okonomi.ubetalt_ore ? kr0(okonomi.ubetalt_ore) + " kr utestående" : "Alt er betalt",
@@ -605,7 +638,7 @@ async function forside() {
     undertekst: "Se gjennom og godkjenn, så opprettes medlemmene",
     farge: "teal", ikon: "last", klikk: () => gaTil("innmeldinger")
   }));
-  if (medlemsTall.ubetalte) rader.push(oppmRad({
+  if (medlemsTall.ubetalte && !erBedrift()) rader.push(oppmRad({
     tittel: antall(medlemsTall.ubetalte, "medlem har ikke betalt", "medlemmer har ikke betalt"),
     undertekst: "Se hvem det gjelder og send påminnelse",
     farge: "gold", ikon: "varsel", klikk: () => gaTil("betalinger")
@@ -633,7 +666,7 @@ async function forside() {
       farge: frist <= 7 ? "red" : "blue", ikon: "kalender", klikk: () => gaTil("prosjekter")
     }));
   }
-  if (medlemsTall.manglerInfo) rader.push(oppmRad({
+  if (medlemsTall.manglerInfo && !erBedrift()) rader.push(oppmRad({
     tittel: antall(medlemsTall.manglerInfo, "medlem mangler kontaktinformasjon", "medlemmer mangler kontaktinformasjon"),
     undertekst: "Uten e-post eller telefon når dere dem ikke",
     farge: "blue", ikon: "info", klikk: () => gaTil("medlemmer")
@@ -943,7 +976,9 @@ async function selskap() {
     innhold: el("dl", { class: "kv" }, [
       el("dt", {}, "Navn"), el("dd", {}, o.navn),
       el("dt", {}, "Organisasjonsnummer"), el("dd", {}, o.orgnr || "—"),
-      el("dt", {}, "Type"), el("dd", {}, o.type),
+      el("dt", {}, "Type"), el("dd", {}, o.type === "bedrift" ? "Bedrift" : o.type),
+      erBedrift() && el("dt", {}, "Mva-registrert"),
+      erBedrift() && el("dd", {}, o.mva_registrert === null ? "Ikke valgt" : o.mva_registrert ? "Ja — 25 % mva som standard" : "Nei"),
       el("dt", {}, "E-post"), el("dd", {}, o.epost || "—"),
       el("dt", {}, "Telefon"), el("dd", {}, o.telefon || "—"),
       el("dt", {}, "Adresse"), el("dd", {}, [o.adresse, o.postnr, o.sted].filter(Boolean).join(", ") || "—"),
@@ -990,11 +1025,14 @@ async function redigerOrg() {
       { navn: "telefon", label: "Telefon", verdi: o.telefon || "" },
       { navn: "adresse", label: "Adresse", verdi: o.adresse || "" },
       { navn: "postnr", label: "Postnummer", verdi: o.postnr || "" },
-      { navn: "sted", label: "Sted", verdi: o.sted || "" }
+      { navn: "sted", label: "Sted", verdi: o.sted || "" },
+      ...(erBedrift() ? [{ navn: "mva_registrert", label: "Mva-registrert", type: "select", verdi: o.mva_registrert ? "ja" : "nei",
+        valg: [{ verdi: "ja", tekst: "Ja — fakturerer med mva" }, { verdi: "nei", tekst: "Nei — ikke registrert" }] }] : [])
     ],
     onLagre: async (d) => {
       const { data, error } = await db.from("organizations").update({
         navn: d.navn, orgnr: d.orgnr || null, epost: d.epost || null, telefon: d.telefon || null,
+        ...(erBedrift() ? { mva_registrert: d.mva_registrert === "ja" } : {}),
         adresse: d.adresse || null, postnr: d.postnr || null, sted: d.sted || null
       }).eq("id", S.orgId).select().single();
       if (error) throw error;

@@ -475,7 +475,9 @@ export async function registrerModal(type) {
       { navn: "motpart", label: erUtgift ? "Hvem (leverandør)" : "Hvem (betaler)", type: "text" },
       { navn: "category_id", label: "Kategori", type: "select", valg: kategorier.map(k => ({ verdi: k.id, tekst: k.navn })) },
       { navn: "project_id", label: "Prosjekt (valgfritt)", type: "select", valg: [{ verdi: "", tekst: "— Ingen —" }, ...prosjekter.map(p => ({ verdi: p.id, tekst: p.navn }))] },
-      { navn: "account_id", label: erUtgift ? "Betalt fra konto" : "Inn på konto", type: "select", valg: kontoer.map(k => ({ verdi: k.id, tekst: k.navn })) }
+      { navn: "account_id", label: erUtgift ? "Betalt fra konto" : "Inn på konto", type: "select", valg: kontoer.map(k => ({ verdi: k.id, tekst: k.navn })) },
+      ...(S.org?.mva_registrert ? [{ navn: "mva_sats", label: "Mva-sats", type: "select", verdi: "25", hint: "Beløpet er inkl. mva.",
+        valg: [{ verdi: "25", tekst: "25 %" }, { verdi: "15", tekst: "15 %" }, { verdi: "12", tekst: "12 %" }, { verdi: "0", tekst: "0 % / ingen mva" }] }] : [])
     ],
     onLagre: async (data) => {
       const belop_ore = tilOre(data.belop);
@@ -489,6 +491,8 @@ export async function registrerModal(type) {
         type,
         beskrivelse: data.beskrivelse,
         belop_ore,
+        mva_sats: S.org?.mva_registrert ? Number(data.mva_sats || 0) : 0,
+        mva_ore: S.org?.mva_registrert ? Math.round(belop_ore - belop_ore / (1 + Number(data.mva_sats || 0) / 100)) : 0,
         motpart: data.motpart || null,
         category_id: data.category_id || null,
         konto_nummer: kategori?.konto_nummer ?? null,
