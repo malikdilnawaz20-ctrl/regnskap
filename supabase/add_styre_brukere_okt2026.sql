@@ -22,8 +22,8 @@ begin
   if org is null then raise exception 'Fant ikke Skoger og Fjell kampsportklubb (912484335)'; end if;
 
   for rad in select * from (values
-      ('ardita@kampsportlaget.com',  'Ardita',  'Dije',   'Styremedlem'),
-      ('adriana@kampsportlaget.com', 'Adriana', 'Januzi', 'Styremedlem'),
+      ('ardita@kampsportlaget.com',  'Ardita',  'Januzi', 'Styremedlem'),
+      ('adriana@kampsportlaget.com', 'Adriana', 'Dije',   'Styremedlem'),
       ('heidi@kampsportlaget.com',   'Heidi',   '',       'Styremedlem'),
       ('robert@kampsportlaget.com',  'Robert',  '',       'Styremedlem'),
       ('truls@kampsportlaget.com',   'Truls',   '',       'Styremedlem')

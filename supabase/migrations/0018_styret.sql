@@ -329,7 +329,7 @@ declare org uuid; n text; i int := 0;
 begin
   select id into org from organizations where orgnr = '912484335';
   if org is null then raise notice 'Fant ikke org 912484335 — hopper over styret.'; return; end if;
-  foreach n in array array['Adriana Januzi','Ardita Dije','Afrim Bekhtesi','Amir Malik','Monica Granly'] loop
+  foreach n in array array['Adriana Dije','Ardita Januzi','Afrim Bekhtesi','Amir Malik','Monica Granly'] loop
     i := i + 10;
     if not exists (select 1 from board_members b where b.organization_id = org and lower(b.navn) = lower(n)) then
       insert into board_members (organization_id, navn, verv, rekkefolge, user_id)
