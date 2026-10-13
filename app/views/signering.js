@@ -56,7 +56,7 @@ const VERIFISER_URL = new URL("../verifiser.html", location.href).href;
 
 /** Alle forespørsler i organisasjonen, med mottakere og signaturer. */
 export async function hentForesporsler() {
-  mineFullmakter = null;
+  mineFullmakter = null; styreKart = null;
   const { data, error } = await db.from("signature_requests")
     .select("*, oppretter:opprettet_av(fornavn,etternavn,epost), " +
             "mottakere:signature_request_recipients(user_id, profiles(fornavn,etternavn,epost)), " +
@@ -102,13 +102,35 @@ export async function hvordanKanJegSignere(r, dok) {
     return (r.mottakere || []).some(m => m.user_id === jeg) ? "styremedlem" : null;
   }
   if (r.type === "mote") {
-    // Enkel signatur: den som holder enheten registrerer styremedlemmenes signaturer
-    return kanSkrive() && gjenstaarIMote(r).length ? "styremedlem_i_mote" : null;
+    // Er jeg selv på listen? Da signerer jeg mitt eget navn med én knapp.
+    const min = await minOppforing(r);
+    const signert = new Set((r.signaturer || []).map(s => s.signer_id));
+    if (min && !signert.has(min.id)) return "styremedlem_i_mote_selv";
+    // Ellers: den som sendte dokumentet, eller administrator, holder enheten rundt bordet
+    const holder = erAdmin() || r.opprettet_av === jeg;
+    return kanSkrive() && holder && gjenstaarIMote(r).length ? "styremedlem_i_mote" : null;
   }
   const mappe = dok?.mappe ?? r.documents?.mappe;
   if (await minFullmakt(mappe)) return "fullmektig_for_styret";
   if (erAdmin()) return "administrator";
   return null;
+}
+
+/** Styreregisteret (id → user_id), hentet én gang per visning. */
+let styreKart = null;
+async function hentStyreKart() {
+  if (!styreKart) {
+    const { data, error } = await velgFra("board_members", "id, user_id");
+    if (error) throw error;
+    styreKart = Object.fromEntries((data || []).map(b => [b.id, b.user_id]));
+  }
+  return styreKart;
+}
+
+/** Min egen oppføring på en enkel-signatur-liste, hvis jeg er koblet til et navn der. */
+export async function minOppforing(r) {
+  const kart = await hentStyreKart();
+  return (r.styre || []).find(b => b.board_member_id && kart[b.board_member_id] === S.bruker.id) || null;
 }
 
 /** Styremedlemmer som ikke har signert ennå (enkel signatur). */
@@ -312,6 +334,19 @@ export async function sendTilSignering(dok) {
 export async function signer(r, dok) {
   const som = await hvordanKanJegSignere(r, dok);
   if (som === "styremedlem_i_mote") return enkelSignering(r, dok);
+  if (som === "styremedlem_i_mote_selv") {
+    const min = await minOppforing(r);
+    const ok = await signerStyremedlem(r, dok, min, dok.dokumentdato || iDag(), { utenTegning: true });
+    if (!ok) return false;
+    const { data: oppd } = await db.from("documents").select("*").eq("id", dok.id).single();
+    if (oppd?.laast) {
+      try { await ferdigstillSignertFil(oppd); toast("Ferdig signert", "Alle har signert. Den signerte PDF-en ligger i arkivet."); }
+      catch (e) { console.warn(e); toast("Signert", "Signaturen er registrert, men PDF-en kunne ikke lages nå.", true); }
+    } else {
+      toast("Signert", "Signaturen din er registrert. Dokumentet venter på de andre.");
+    }
+    return true;
+  }
   if (!som) { toast("Kan ikke signere", "Du er ikke bedt om å signere dette dokumentet, eller du har allerede signert.", true); return false; }
 
   const rolleTekst = S.styreverv || S.rolle;
@@ -476,7 +511,8 @@ async function bygg() {
           el("span", { class: "tekst" }, [
             el("b", {}, (d.tittel || d.filnavn || "Dokument") + (d.saksflytnr ? " · " + d.saksflytnr : "")),
             el("span", {}, [
-              som === "styremedlem_i_mote" ? `Enkel signatur — ${gjenstaarIMote(r).length} av ${(r.styre || []).length} gjenstår`
+              som === "styremedlem_i_mote_selv" ? "Trykk Signer for å bekrefte at du har signert"
+                : som === "styremedlem_i_mote" ? `Enkel signatur — ${gjenstaarIMote(r).length} av ${(r.styre || []).length} gjenstår`
                 : som === "styremedlem" ? "Du signerer som styremedlem" : "Du signerer på vegne av styret",
               r.melding ? " — «" + r.melding + "»" : "",
               " · sendt av " + navnPaa(r.oppretter) + " " + tidspunkt(r.opprettet)
@@ -755,9 +791,9 @@ async function enkelSignering(r, dok) {
   return gjort;
 }
 
-async function signerStyremedlem(r, dok, b, signaturdato) {
+async function signerStyremedlem(r, dok, b, signaturdato, { utenTegning = false } = {}) {
   const navn = b.navn || "Signatar";
-  const flate = tegneflate();
+  const flate = utenTegning ? null : tegneflate();
   const bekreftet = el("input", { type: "checkbox" });
 
   return new Promise(resolve => {
@@ -769,7 +805,7 @@ async function signerStyremedlem(r, dok, b, signaturdato) {
       signerKnapp.disabled = true; signerKnapp.textContent = "Signerer …";
       try {
         let sti = null;
-        if (!flate.erTom()) {
+        if (flate && !flate.erTom()) {
           const png = await flate.blob();
           sti = `${S.orgId}/signatur-${Date.now()}-${b.id.slice(0, 8)}.png`;
           const { error: oppFeil } = await db.storage.from("dokumenter").upload(sti, png, { contentType: "image/png" });
@@ -792,11 +828,11 @@ async function signerStyremedlem(r, dok, b, signaturdato) {
         el("p", {}, (b.rolle ? b.rolle + " · " : "") + "signerer " + (dok.tittel || dok.filnavn))
       ]),
       el("div", { class: "modal-body" }, [
-        el("div", { class: "field" }, [
+        flate ? el("div", { class: "field" }, [
           el("label", {}, "Signer med fingeren eller pennen (valgfritt)"),
           flate.el,
           el("div", { class: "actions" }, [knapp("Tøm", { klasse: "stille sm", ved: flate.tom })])
-        ]),
+        ]) : el("p", { class: "dim", style: "margin:0;font-size:.9rem" }, "Du er logget inn som deg selv. Kryss av og trykk Signer — det er hele signeringen."),
         el("label", { style: "display:flex;gap:10px;align-items:center;margin-top:14px;font-weight:500" }, [
           bekreftet, "Jeg er " + navn + " og signerer dette dokumentet."
         ])
