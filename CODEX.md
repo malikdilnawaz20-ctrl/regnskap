@@ -102,6 +102,8 @@ Det som gjelder, og som ikke skal endres uten god grunn:
 - **Vis aldri hvem som holdt enheten** ved enkel signatur. Det ligger i `signatures.user_id` for revisjonssporet, men skal ikke på signatursiden eller verifiseringen. Og skriv «på vegne av styret», aldri «administrator», i det folk ser.
 - **Anledning** (`signature_requests.anledning`): fem faste valg + fritekst. Står på signatursiden og i verifiseringen.
 
+- **Innsyn (0019).** Rollen `medlem` ser bare dokumenter og signering; `trener` i tillegg medlemmer og aktiviteter. Håndhevet med *restriktive* RLS-regler (`*_innsyn`) oppå de vanlige, via `kan_se_okonomi()` og `kan_se_medlemmer()`. I grensesnittet styrer `tillatteRuter()` i `app.js` og `erBegrenset()` i `store.js`. Administrator gir mer innsyn ved å endre rollen under Brukere og roller — ikke ved å skjule/vise knapper.
+
 Neste steg når det trengs: BankID via leverandør (`signatures.nivaa = 'bankid'`), e-postvarsel ved signeringsforespørsel.
 
 ---

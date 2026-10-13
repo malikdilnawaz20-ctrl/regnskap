@@ -11,7 +11,7 @@ import {
   el, svg, kort, merke, tabell, felt, skjemaModal, bekreft, toast, visFeil,
   knapp, dato, tidspunkt, iDag, tomTilstand, antall, db
 } from "../lib.js";
-import { S, VERV, erAdmin, kanSkrive, velgFra, settInn, paaNytt, gaTil } from "../store.js";
+import { S, VERV, erAdmin, kanSkrive, erBegrenset, velgFra, settInn, paaNytt, gaTil } from "../store.js";
 import { lagSignertPdf, hashAvFil } from "../signatur-pdf.js";
 
 export const STATUS = {
@@ -186,11 +186,11 @@ export function signeringKnapper(dok, apne, tegn) {
       window.open(url.signedUrl, "_blank", "noopener");
     }
   }));
-  if (dok.laast && !dok.signert_path && kanSkrive()) knapper.push(knapp("Lag signert PDF", {
+  if (dok.laast && !dok.signert_path && kanSkrive() && !erBegrenset()) knapper.push(knapp("Lag signert PDF", {
     klasse: "stille sm", tittel: "Signaturene er registrert, men filen ble ikke laget. Prøv igjen.",
     ved: async () => { try { await ferdigstillSignertFil(dok); toast("Ferdig", "Den signerte PDF-en ligger i arkivet."); tegn(); } catch (e) { visFeil(e, "Signert PDF"); } }
   }));
-  if (!dok.laast && !r && kanSkrive()) knapper.push(knapp("Send til signering", {
+  if (!dok.laast && !r && kanSkrive() && !erBegrenset()) knapper.push(knapp("Send til signering", {
     klasse: "stille sm",
     ved: async () => { if (await sendTilSignering(dok)) tegn(); }
   }));

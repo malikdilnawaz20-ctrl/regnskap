@@ -11,7 +11,7 @@ import {
 } from "./lib.js";
 
 import {
-  S, ROLLER, VERV, erAdmin, kanOkonomi, kanMedlem, kanSkrive, erRevisor,
+  S, ROLLER, VERV, erAdmin, kanOkonomi, kanMedlem, kanSkrive, erRevisor, erBegrenset,
   hentBruker, hentOrganisasjoner, settOrg, velgFra, settInn, paaNytt, aarNaa
 } from "./store.js";
 
@@ -71,6 +71,16 @@ const INNST_UNDER = ["selskap", "brukere", "fullmakter", "revisjonsspor"];
 
 /** Revisor har kun lesetilgang til tall og bilag \u2014 ingen medlemsdata, ingen innstillinger, ingen eksport. */
 const REVISOR_RUTER = ["oversikt", "okonomi", "bank", "regnskapsrapporter", "rapporter", "hjelp", "profil"];
+/** Medlem ser bare arkiv og signering. Trener ser i tillegg medlemmer og aktiviteter. Databasen håndhever det samme (0019). */
+const MEDLEM_RUTER = ["oversikt", "dokumenter", "signering", "hjelp", "profil"];
+const TRENER_RUTER = ["oversikt", "medlemmer", "aktiviteter", "dokumenter", "signering", "hjelp", "profil"];
+function tillatteRuter() {
+  if (erRevisor()) return REVISOR_RUTER;
+  if (S.rolle === "medlem") return MEDLEM_RUTER;
+  if (S.rolle === "trener") return TRENER_RUTER;
+  return null;
+}
+const ruteTillatt = (r) => { const t = tillatteRuter(); return !t || t.includes(r); };
 
 let ruteNaa = "oversikt";
 let okonomiApen = false;
@@ -118,13 +128,13 @@ function lesRute() {
   const kandidat = del[del.length - 1];
   if (kandidat && RUTER[kandidat]) ruteNaa = kandidat;
   else if (!RUTER[ruteNaa]) ruteNaa = "oversikt";
-  if (erRevisor() && !REVISOR_RUTER.includes(ruteNaa)) ruteNaa = "oversikt";
+  if (!ruteTillatt(ruteNaa)) ruteNaa = "oversikt";
   if (OKONOMI_UNDER.includes(ruteNaa)) okonomiApen = true;
   if (INNST_UNDER.includes(ruteNaa)) innstApen = true;
 }
 
 function gaTil(rute) {
-  if (erRevisor() && !REVISOR_RUTER.includes(rute)) rute = "oversikt";
+  if (!ruteTillatt(rute)) rute = "oversikt";
   ruteNaa = rute;
   location.hash = "#/" + rute;
   tegn();
@@ -320,10 +330,11 @@ function byggSidepanel() {
   );
 
   const revisorTilgang = erRevisor();
-  const okonomiUnderSynlig = revisorTilgang ? OKONOMI_UNDER.filter(u => REVISOR_RUTER.includes(u)) : OKONOMI_UNDER;
+  const begrensning = tillatteRuter();
+  const okonomiUnderSynlig = begrensning ? OKONOMI_UNDER.filter(u => begrensning.includes(u)) : OKONOMI_UNDER;
 
   for (const g of HOVEDNAV) {
-    const punkterSynlig = revisorTilgang ? g.punkter.filter(id => REVISOR_RUTER.includes(id)) : g.punkter;
+    const punkterSynlig = begrensning ? g.punkter.filter(id => begrensning.includes(id)) : g.punkter;
     if (!punkterSynlig.length) continue;
     const boks = el("div", { class: "sb-group" });
     if (g.gruppe) boks.append(el("h4", {}, g.gruppe));
@@ -355,7 +366,7 @@ function byggSidepanel() {
   }
 
   const bunn = el("div", { class: "sb-bunn" });
-  if (!revisorTilgang) {
+  if (!revisorTilgang && !erBegrenset()) {
     bunn.append(el("button", {
       class: "sb-item" + (["innstillinger", ...INNST_UNDER].includes(ruteNaa) ? " on" : ""),
       onclick: () => { innstApen = !innstApen; gaTil("innstillinger"); }
@@ -451,7 +462,7 @@ function byggTopp() {
 
   return el("div", { class: "topbar" }, [
     el("div", {}, [el("h1", {}, tittel), under && el("p", { class: "sub" }, under)]),
-    el("div", { class: "top-hoyre" }, [kanSkrive() ? nyMeny() : null])
+    el("div", { class: "top-hoyre" }, [kanSkrive() && !erBegrenset() ? nyMeny() : null])
   ]);
 }
 
@@ -514,7 +525,40 @@ async function tegnInnhold(boks) {
    Forsiden — referansesiden for designsystemet
    ===================================================================== */
 
+/* Forside for medlem/trener: dokumenter og det som venter på signatur. Ingen tall. */
+async function forsideBegrenset() {
+  const [signering, { data: doks }] = await Promise.all([
+    hentSigneringTall().catch(() => ({ apne: 0, tilMeg: 0 })),
+    velgFra("documents", "id, tittel, mappe, opprettet, laast").order("opprettet", { ascending: false }).limit(5)
+  ]);
+  const rader = [];
+  if (signering.tilMeg) rader.push(oppmRad({
+    tittel: antall(signering.tilMeg, "dokument venter på signaturen din", "dokumenter venter på signaturen din"),
+    undertekst: "Trykk her, så ser du hva det gjelder",
+    farge: "teal", ikon: "dokument", klikk: () => gaTil("signering")
+  }));
+  return el("div", { class: "stack" }, [
+    kort({
+      tittel: "Trenger oppmerksomhet",
+      beskrivelse: rader.length ? "Trykk på en linje for å gjøre noe med den." : "Ingenting venter på deg akkurat nå.",
+      innhold: oppmListe(rader)
+    }),
+    kort({
+      tittel: "Sist lagt inn i arkivet",
+      hoyre: knapp("Alle dokumenter", { klasse: "stille sm", ved: () => gaTil("dokumenter") }),
+      innhold: (doks || []).length
+        ? el("div", { class: "oppm" }, (doks || []).map(d => el("button", { class: "oppm-rad", onclick: () => gaTil("dokumenter") }, [
+            el("span", { class: "merke " + (d.laast ? "green" : "blue"), html: svg("dokument") }),
+            el("span", { class: "tekst" }, [el("b", {}, d.tittel), el("span", {}, d.mappe + " · " + tidspunkt(d.opprettet) + (d.laast ? " · signert" : ""))]),
+            el("span", { class: "pil", html: svg("pil") })
+          ])))
+        : el("div", { class: "empty" }, "Ingen dokumenter ennå.")
+    })
+  ]);
+}
+
 async function forside() {
+  if (erBegrenset()) return forsideBegrenset();
   const boks = el("div", { class: "stack" });
 
   const [okonomi, medlemsTall, prosjekter, attest, nyeInnmeldinger, signering] = await Promise.all([
@@ -1215,7 +1259,7 @@ async function dokumenter() {
         tittel: "Ingen dokumenter ennå",
         tekst: "Legg inn vedtekter, årsmøteprotokoller og avtaler her, så finner styret dem igjen neste år.",
         ikon: "dokument",
-        handlinger: kanSkrive() ? [knapp("Last opp dokument", { klasse: "primary", ikon: "last", ved: lastOppDokument })] : []
+        handlinger: kanSkrive() && !erBegrenset() ? [knapp("Last opp dokument", { klasse: "primary", ikon: "last", ved: lastOppDokument })] : []
       })
     }));
     return boks;
@@ -1225,7 +1269,7 @@ async function dokumenter() {
   for (const d of data) (grupper[d.mappe] = grupper[d.mappe] || []).push(d);
 
   const uStemplet = data.filter(kanStemplesRad);
-  const stempleAlleKnapp = (kanSkrive() && uStemplet.length)
+  const stempleAlleKnapp = (kanSkrive() && !erBegrenset() && uStemplet.length)
     ? knapp("Stemple " + antall(uStemplet.length, "dokument", "dokumenter"), {
         ikon: "ok",
         tittel: "Trykker saksflytnummeret inn i filene som ikke er stemplet ennå",
@@ -1237,7 +1281,7 @@ async function dokumenter() {
     el("span", { class: "meta" }, `${data.length} dokumenter i ${Object.keys(grupper).length} mapper`),
     el("div", { class: "actions" }, [
       stempleAlleKnapp,
-      kanSkrive() ? knapp("Last opp dokument", { klasse: "primary", ikon: "last", ved: lastOppDokument }) : null
+      kanSkrive() && !erBegrenset() ? knapp("Last opp dokument", { klasse: "primary", ikon: "last", ved: lastOppDokument }) : null
     ])
   ]));
 
@@ -1259,7 +1303,7 @@ async function dokumenter() {
             : el("span", { class: "dim" }, "—")),
           el("td", { class: "num" }, el("div", { class: "actions" }, [
             ...signeringKnapper(f, apneSignering, tegn),
-            (kanSkrive() && kanStemplesRad(f) && !f.laast) ? knapp("Stemple", {
+            (kanSkrive() && !erBegrenset() && kanStemplesRad(f) && !f.laast) ? knapp("Stemple", {
               klasse: "stille sm",
               tittel: "Trykk " + f.saksflytnr + " inn i filen",
               ved: (e) => stempleMange([f], e.currentTarget)

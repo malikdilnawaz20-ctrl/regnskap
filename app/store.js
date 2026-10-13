@@ -23,6 +23,9 @@ export const kanOkonomi = () => ["administrator", "styreleder", "kasserer"].incl
 export const kanMedlem = () => ["administrator", "styreleder", "medlemsansvarlig", "kasserer"].includes(S.rolle);
 export const erRevisor = () => S.rolle === "revisor";
 export const kanSkrive = () => !!S.rolle && S.rolle !== "revisor";
+/** Begrenset innsyn: ser dokumenter og signering, ikke regnskap eller medlemsregister. */
+export const erBegrenset = () => ["medlem", "trener"].includes(S.rolle);
+export const kanSeOkonomi = () => ["administrator", "styreleder", "kasserer", "revisor"].includes(S.rolle);
 
 export const ROLLER = [
   { verdi: "administrator", tekst: "Administrator — full tilgang" },
