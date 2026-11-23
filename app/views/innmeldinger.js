@@ -125,7 +125,12 @@ export const innmeldingerView = {
         return el("tr", { style: "cursor:pointer", onclick: () => aapne(i, folk) }, [
           el("td", {}, [
             el("b", {}, i.familienavn),
-            el("div", { class: "sub" }, `${i.adresse}, ${i.postnr} ${i.sted}`)
+            el("div", { class: "sub" }, [
+              pille(i.medlemstype === "enkelt" ? "Enkelt" : "Familie",
+                    i.medlemstype === "enkelt" ? "blue" : "teal"),
+              " ",
+              `${i.adresse}, ${i.postnr} ${i.sted}`
+            ])
           ]),
           el("td", {}, [
             `${folk.length} personer`,
@@ -191,7 +196,12 @@ function aapne(inm, folk) {
   const innhold = el("div", { class: "stack" });
 
   innhold.append(el("div", { class: "kv" }, [
-    el("div", {}, [el("span", { class: "sub" }, "Adresse"), el("div", {}, `${inm.adresse}, ${inm.postnr} ${inm.sted}`)]),
+    el("div", {}, [
+      el("span", { class: "sub" }, inm.medlemstype === "enkelt" ? "Enkeltmedlemskap" : "Familiemedlemskap"),
+      el("div", {}, `${inm.adresse}, ${inm.postnr} ${inm.sted}`),
+      inm.medlemstype === "enkelt" &&
+        el("div", { class: "sub" }, "Medlemmer med egen adresse er merket under.")
+    ])
   ]));
 
   innhold.append(kort({
@@ -216,7 +226,7 @@ function aapne(inm, folk) {
   const personBoks = el("div", { class: "stack" });
   for (const p of folk) {
     const fnrFelt = el("span", { class: "mono" }, p.fnr_maskert);
-    const harFnr = !!p.fnr_maskert && !/slettet/.test(p.fnr_maskert);
+    const harFnr = !!p.fnr_maskert && !/slettet|ikke oppgitt/.test(p.fnr_maskert);
 
     const rad = el("div", { class: "rowline" }, [
       el("div", { style: "flex:1;min-width:0" }, [
@@ -227,7 +237,8 @@ function aapne(inm, folk) {
           `${dato(p.fodselsdato)} · ${alder(p.fodselsdato)} år`,
           p.gren ? ` · ${p.gren}` : "",
           p.draktstorrelse ? ` · drakt ${p.draktstorrelse}` : "",
-          p.samtykke_bilder ? " · samtykke bilder" : " · ikke samtykke bilder"
+          p.samtykke_bilder ? " · samtykke bilder" : " · ikke samtykke bilder",
+          p.adresse ? ` · ${p.adresse}, ${p.postnr || ""} ${p.sted || ""}`.trimEnd() : ""
         ])
       ]),
       el("div", { style: "display:flex;align-items:center;gap:10px" }, [
