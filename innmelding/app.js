@@ -612,6 +612,18 @@ function tegnKontakt(boks = $("#kontakt")) {
   tom(boks);
   if (!trengerKontaktblokk()) return;
 
+  // Enkeltmedlemskap: den første voksne er som regel den som melder inn.
+  // Fyll feltene på forhånd, men la dem kunne endres.
+  if (type === "enkelt") {
+    const v = personer.find(x => x.rolle === "voksen");
+    if (v) {
+      const navn = `${v.fornavn || ""} ${v.etternavn || ""}`.trim();
+      if (!familie.kontakt_navn.trim() && navn) familie.kontakt_navn = navn;
+      if (!familie.kontakt_telefon.trim() && v.telefon) familie.kontakt_telefon = v.telefon;
+      if (!familie.kontakt_epost.trim() && v.epost) familie.kontakt_epost = v.epost;
+    }
+  }
+
   const bind = (n) => (e) => { familie[n] = e.target.value; oppdaterSendelinje(); };
 
   boks.append(
